@@ -148,7 +148,12 @@ if uploaded_file is not None:
             df_keywords['volume'] = pd.to_numeric(df_keywords['volume'], errors='coerce').fillna(0).astype(int)
             df_keywords['kd'] = pd.to_numeric(df_keywords['kd'], errors='coerce').fillna(0).astype(int)
             df_keywords['serp_features'] = df_keywords['serp_features'].fillna('')
-            df_keywords['parent_topic'] = df_keywords.get('parent_topic', df_keywords['keyword']).fillna(df_keywords['keyword']) # Use keyword if parent_topic is missing
+            # Ensure 'parent_topic' exists; if not, use 'keyword' as a fallback, then handle NaNs
+            if 'parent_topic' not in df_keywords.columns:
+                st.warning("`Parent Topic` column not found. Using `Keyword` as fallback for parent topic analysis.")
+                df_keywords['parent_topic'] = df_keywords['keyword']
+            df_keywords['parent_topic'] = df_keywords['parent_topic'].fillna(df_keywords['keyword'])
+
 
             # --- Search Intent Classification ---
             if 'intents' in df_keywords.columns:
@@ -312,13 +317,68 @@ if df_keywords is not None:
     else:
         st.warning("No keywords in SAM for breakdown. Adjust your filters in the sidebar.")
 
-    # Average Keyword Difficulty
-    st.subheader("Average Keyword Difficulty (SAM)")
-    if not df_sam.empty:
-        avg_kd_sam = df_sam['kd'].mean()
-        st.metric("Average KD in SAM", f"{avg_kd_sam:.2f}")
+    # Top Parent Categories by Volume & Average KD
+    st.subheader("Top Parent Categories by Volume & Average KD")
+    if not df_keywords.empty:
+        # Group by parent_topic and calculate total volume and average KD
+        parent_topic_data = df_keywords.groupby('parent_topic').agg(
+            total_volume=('volume', 'sum'),
+            average_kd=('kd', 'mean')
+        ).reset_index()
+
+        # Sort by total volume and get the top 120 (for line chart range)
+        parent_topic_data_sorted = parent_topic_data.sort_values(by='total_volume', ascending=False)
+        
+        # Take the top 10 for the bar chart display
+        top_10_parent_topics = parent_topic_data_sorted.head(10)
+
+        if not top_10_parent_topics.empty:
+            # Create combo chart
+            fig_combo = go.Figure()
+
+            # Add bar chart for total volume (primary y-axis)
+            fig_combo.add_trace(
+                go.Bar(
+                    x=top_10_parent_topics['parent_topic'],
+                    y=top_10_parent_topics['total_volume'],
+                    name='Total Search Volume',
+                    marker_color='#1f77b4' # A shade of blue
+                ),
+                secondary_y=False,
+            )
+
+            # Add line chart for average KD (secondary y-axis)
+            fig_combo.add_trace(
+                go.Scatter(
+                    x=top_10_parent_topics['parent_topic'],
+                    y=top_10_parent_topics['average_kd'],
+                    name='Average Keyword Difficulty (KD)',
+                    mode='lines+markers',
+                    marker_color='#d62728' # A shade of red
+                ),
+                secondary_y=True,
+            )
+
+            # Set x-axis title and tick angle
+            fig_combo.update_xaxes(title_text="Parent Topic", tickangle=-45)
+
+            # Set y-axes titles
+            fig_combo.update_yaxes(title_text="Total Search Volume", secondary_y=False)
+            fig_combo.update_yaxes(title_text="Average Keyword Difficulty (KD)", secondary_y=True, showgrid=False) # Hide grid for secondary axis
+
+            fig_combo.update_layout(
+                title_text='Top 10 Parent Categories: Volume vs. Average KD',
+                hovermode="x unified",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+
+            st.plotly_chart(fig_combo, use_container_width=True)
+            st.info("This chart displays the top 10 parent topics by total search volume, with their average Keyword Difficulty (KD) overlaid. Use the metrics to identify high-volume, potentially lower-difficulty opportunities.")
+        else:
+            st.warning("No parent topics found with sufficient data for this chart. Ensure 'parent_topic' and 'kd' columns are present and data is not empty.")
     else:
-        st.warning("No keywords in SAM to calculate average KD. Adjust your filters in the sidebar.")
+        st.warning("Please upload Ahrefs data to view parent category analysis.")
+
 
     # SERP Features Breakdown
     st.subheader("SERP Features Present (SAM)")
