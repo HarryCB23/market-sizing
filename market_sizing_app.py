@@ -98,126 +98,128 @@ st.divider()
 # Initialize df_keywords outside of the if block so it's always defined
 df_keywords = None
 
+# --- 1. Ahrefs Data Upload (Moved to main body) ---
+st.header("1. Upload Ahrefs Keyword Data")
+st.info("""
+    Please export your keyword data from Ahrefs (e.g., from Keywords Explorer or Site Explorer's Organic Keywords report)
+    as a CSV file. Ensure the export includes at least the following columns:
+    `Keyword`, `Volume`, `Difficulty`, `SERP Features`.
+    **Highly recommended:** Include the `Intents` column for more accurate search intent classification.
+    For improved trend analysis, ensure `Growth (3mo)`, `Growth (6mo)`, or `Growth (12mo)` columns are also included.
+""")
+uploaded_file = st.file_uploader("Choose an Ahrefs CSV file", type="csv")
+
+if uploaded_file is not None:
+    # Try reading CSV with multiple encodings
+    encodings_to_try = ['utf-8', 'latin1', 'cp1252', 'utf-16'] 
+    
+    for encoding in encodings_to_try:
+        try:
+            # Reset file pointer for each attempt
+            uploaded_file.seek(0) 
+            df_keywords = pd.read_csv(uploaded_file, encoding=encoding)
+            st.success(f"Ahrefs data loaded successfully with {encoding} encoding!")
+            break # Exit loop if successful
+        except UnicodeDecodeError:
+            continue # Try next encoding
+        except Exception as e:
+            st.error(f"An unexpected error occurred while reading with {encoding} encoding: {e}")
+            df_keywords = None
+            break # Stop trying if another type of error occurs
+    
+    if df_keywords is None:
+        st.error("Could not read the CSV file with common encodings (UTF-8, Latin-1, CP1252, UTF-16). Please check your file's encoding and format.")
+    else:
+        # Standardize column names for easier access (case-insensitive and handle common variations)
+        df_keywords.columns = [col.strip().replace(' ', '_').replace('.', '').lower() for col in df_keywords.columns]
+
+        # Explicitly rename 'difficulty' to 'kd' if present
+        if 'difficulty' in df_keywords.columns and 'kd' not in df_keywords.columns:
+            df_keywords.rename(columns={'difficulty': 'kd'}, inplace=True)
+        
+        # Explicitly rename 'parent_keyword' to 'parent_topic' if present
+        if 'parent_keyword' in df_keywords.columns and 'parent_topic' not in df_keywords.columns:
+            df_keywords.rename(columns={'parent_keyword': 'parent_topic'}, inplace=True)
+
+        # Check for essential columns (now including 'kd' after potential rename)
+        required_cols = ['keyword', 'volume', 'kd', 'serp_features'] 
+        missing_cols = [col for col in required_cols if col not in df_keywords.columns]
+
+        if missing_cols:
+            st.error(f"Missing required columns in your CSV: {', '.join(missing_cols)}. Please ensure `Keyword`, `Volume`, `Difficulty`, `SERP Features` are present in your Ahrefs export.")
+            df_keywords = None # Invalidate dataframe if essential columns are missing
+        else:
+            st.write("First 5 rows of your data:")
+            st.dataframe(df_keywords.head())
+            # Data Cleaning and Preparation
+            df_keywords['volume'] = pd.to_numeric(df_keywords['volume'], errors='coerce').fillna(0).astype(int)
+            df_keywords['kd'] = pd.to_numeric(df_keywords['kd'], errors='coerce').fillna(0).astype(int)
+            df_keywords['serp_features'] = df_keywords['serp_features'].fillna('')
+            # Ensure 'parent_topic' exists; if not, use 'keyword' as a fallback, then handle NaNs
+            if 'parent_topic' not in df_keywords.columns:
+                st.warning("`Parent Topic` or `Parent Keyword` column not found. Using `Keyword` as fallback for parent topic analysis.")
+                df_keywords['parent_topic'] = df_keywords['keyword']
+            df_keywords['parent_topic'] = df_keywords['parent_topic'].fillna(df_keywords['keyword'])
+
+
+            # --- Search Intent Classification ---
+            if 'intents' in df_keywords.columns:
+                st.info("Using Ahrefs 'Intents' column for search intent classification.")
+                def parse_ahrefs_intent(intent_str):
+                    if pd.isna(intent_str) or not intent_str:
+                        return "Unknown"
+                    intents = [i.strip().lower() for i in intent_str.split(',')]
+                    
+                    # Prioritize core intents
+                    if 'transactional' in intents:
+                        return "Transactional"
+                    if 'commercial' in intents:
+                        return "Commercial Investigation"
+                    if 'informational' in intents:
+                        return "Informational"
+                    if 'navigational' in intents:
+                        return "Navigational"
+                    return "Unknown"
+                df_keywords['search_intent'] = df_keywords['intents'].apply(parse_ahrefs_intent)
+            else:
+                st.warning("Ahrefs 'Intents' column not found. Falling back to custom keyword-based intent classification (may be less accurate).")
+                df_keywords['search_intent'] = df_keywords['keyword'].apply(classify_search_intent_custom)
+
+            # Apply custom keyword type classification
+            df_keywords['keyword_type'] = df_keywords['keyword'].apply(get_keyword_type)
+            
+            # New: Calculate word count for each keyword
+            df_keywords['word_count'] = df_keywords['keyword'].apply(lambda x: len(str(x).split()))
+
+
+            # --- Trend Analysis (using Ahrefs Growth columns) ---
+            # Prioritize Growth (12mo), then (6mo), then (3mo)
+            growth_col_found = None
+            for col_suffix in ['12mo', '6mo', '3mo']:
+                # Handle variations in column names like 'global_growth_(12mo)' or just 'growth_(12mo)'
+                potential_col_names = [f'growth_({col_suffix})', f'global_growth_({col_suffix})']
+                for pc_name in potential_col_names:
+                    if pc_name in df_keywords.columns:
+                        growth_col_found = pc_name
+                        break
+                if growth_col_found:
+                    break
+            
+            if growth_col_found:
+                st.info(f"Using `{growth_col_found}` column for trend analysis.")
+                df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_found], errors='coerce').fillna(0)
+
+                df_keywords['trend'] = 'Stable'
+                df_keywords.loc[df_keywords['growth_pct'] > 0, 'trend'] = 'Trending Up'
+                df_keywords.loc[df_keywords['growth_pct'] < 0, 'trend'] = 'Trending Down'
+            else:
+                st.warning("No Ahrefs `Growth (3mo)`, `Growth (6mo)`, or `Growth (12mo)` columns found. Trend analysis will be limited.")
+                df_keywords['trend'] = 'N/A'
+
+
 # --- Sidebar for Market Definition and Sizing Parameters ---
 with st.sidebar:
     st.header("⚙️ Market Definition & Parameters")
-    
-    st.subheader("1. Upload Ahrefs Keyword Data")
-    st.info("""
-        Please export your keyword data from Ahrefs (e.g., from Keywords Explorer or Site Explorer's Organic Keywords report)
-        as a CSV file. Ensure the export includes at least the following columns:
-        `Keyword`, `Volume`, `Difficulty`, `SERP Features`.
-        **Highly recommended:** Include the `Intents` column for more accurate search intent classification.
-        For improved trend analysis, ensure `Growth (3mo)`, `Growth (6mo)`, or `Growth (12mo)` columns are also included.
-    """)
-    uploaded_file = st.file_uploader("Choose an Ahrefs CSV file", type="csv")
-
-    if uploaded_file is not None:
-        # Try reading CSV with multiple encodings
-        encodings_to_try = ['utf-8', 'latin1', 'cp1252', 'utf-16'] 
-        
-        for encoding in encodings_to_try:
-            try:
-                # Reset file pointer for each attempt
-                uploaded_file.seek(0) 
-                df_keywords = pd.read_csv(uploaded_file, encoding=encoding)
-                st.success(f"Ahrefs data loaded successfully with {encoding} encoding!")
-                break # Exit loop if successful
-            except UnicodeDecodeError:
-                continue # Try next encoding
-            except Exception as e:
-                st.error(f"An unexpected error occurred while reading with {encoding} encoding: {e}")
-                df_keywords = None
-                break # Stop trying if another type of error occurs
-        
-        if df_keywords is None:
-            st.error("Could not read the CSV file with common encodings (UTF-8, Latin-1, CP1252, UTF-16). Please check your file's encoding and format.")
-        else:
-            # Standardize column names for easier access (case-insensitive and handle common variations)
-            df_keywords.columns = [col.strip().replace(' ', '_').replace('.', '').lower() for col in df_keywords.columns]
-
-            # Explicitly rename 'difficulty' to 'kd' if present
-            if 'difficulty' in df_keywords.columns and 'kd' not in df_keywords.columns:
-                df_keywords.rename(columns={'difficulty': 'kd'}, inplace=True)
-            
-            # Explicitly rename 'parent_keyword' to 'parent_topic' if present
-            if 'parent_keyword' in df_keywords.columns and 'parent_topic' not in df_keywords.columns:
-                df_keywords.rename(columns={'parent_keyword': 'parent_topic'}, inplace=True)
-
-            # Check for essential columns (now including 'kd' after potential rename)
-            required_cols = ['keyword', 'volume', 'kd', 'serp_features'] 
-            missing_cols = [col for col in required_cols if col not in df_keywords.columns]
-
-            if missing_cols:
-                st.error(f"Missing required columns in your CSV: {', '.join(missing_cols)}. Please ensure `Keyword`, `Volume`, `Difficulty`, `SERP Features` are present in your Ahrefs export.")
-                df_keywords = None # Invalidate dataframe if essential columns are missing
-            else:
-                # Data Cleaning and Preparation
-                st.write("First 5 rows of your data:")
-                st.dataframe(df_keywords.head())
-                df_keywords['volume'] = pd.to_numeric(df_keywords['volume'], errors='coerce').fillna(0).astype(int)
-                df_keywords['kd'] = pd.to_numeric(df_keywords['kd'], errors='coerce').fillna(0).astype(int)
-                df_keywords['serp_features'] = df_keywords['serp_features'].fillna('')
-                # Ensure 'parent_topic' exists; if not, use 'keyword' as a fallback, then handle NaNs
-                if 'parent_topic' not in df_keywords.columns:
-                    st.warning("`Parent Topic` or `Parent Keyword` column not found. Using `Keyword` as fallback for parent topic analysis.")
-                    df_keywords['parent_topic'] = df_keywords['keyword']
-                df_keywords['parent_topic'] = df_keywords['parent_topic'].fillna(df_keywords['keyword'])
-
-
-                # --- Search Intent Classification ---
-                if 'intents' in df_keywords.columns:
-                    st.info("Using Ahrefs 'Intents' column for search intent classification.")
-                    def parse_ahrefs_intent(intent_str):
-                        if pd.isna(intent_str) or not intent_str:
-                            return "Unknown"
-                        intents = [i.strip().lower() for i in intent_str.split(',')]
-                        
-                        # Prioritize core intents
-                        if 'transactional' in intents:
-                            return "Transactional"
-                        if 'commercial' in intents:
-                            return "Commercial Investigation"
-                        if 'informational' in intents:
-                            return "Informational"
-                        if 'navigational' in intents:
-                            return "Navigational"
-                        return "Unknown"
-                    df_keywords['search_intent'] = df_keywords['intents'].apply(parse_ahrefs_intent)
-                else:
-                    st.warning("Ahrefs 'Intents' column not found. Falling back to custom keyword-based intent classification (may be less accurate).")
-                    df_keywords['search_intent'] = df_keywords['keyword'].apply(classify_search_intent_custom)
-
-                # Apply custom keyword type classification
-                df_keywords['keyword_type'] = df_keywords['keyword'].apply(get_keyword_type)
-                
-                # New: Calculate word count for each keyword
-                df_keywords['word_count'] = df_keywords['keyword'].apply(lambda x: len(str(x).split()))
-
-
-                # --- Trend Analysis (using Ahrefs Growth columns) ---
-                # Prioritize Growth (12mo), then (6mo), then (3mo)
-                growth_col_found = None
-                for col_suffix in ['12mo', '6mo', '3mo']:
-                    # Handle variations in column names like 'global_growth_(12mo)' or just 'growth_(12mo)'
-                    potential_col_names = [f'growth_({col_suffix})', f'global_growth_({col_suffix})']
-                    for pc_name in potential_col_names:
-                        if pc_name in df_keywords.columns:
-                            growth_col_found = pc_name
-                            break
-                    if growth_col_found:
-                        break
-                
-                if growth_col_found:
-                    st.info(f"Using `{growth_col_found}` column for trend analysis.")
-                    df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_found], errors='coerce').fillna(0)
-
-                    df_keywords['trend'] = 'Stable'
-                    df_keywords.loc[df_keywords['growth_pct'] > 0, 'trend'] = 'Trending Up'
-                    df_keywords.loc[df_keywords['growth_pct'] < 0, 'trend'] = 'Trending Down'
-                else:
-                    st.warning("No Ahrefs `Growth (3mo)`, `Growth (6mo)`, or `Growth (12mo)` columns found. Trend analysis will be limited.")
-                    df_keywords['trend'] = 'N/A'
     
     # Only show filters and monetization if df_keywords is loaded
     if df_keywords is not None:
@@ -259,7 +261,8 @@ with st.sidebar:
         )
         st.info(f"This is the percentage of the Serviceable Available Market (SAM) you realistically expect to capture.")
     else:
-        # If no file is uploaded yet, provide dummy values for sidebar controls
+        # If no file is uploaded yet, provide dummy values for sidebar controls and a message
+        st.warning("Upload your Ahrefs data on the main page to enable market definition filters and parameters.")
         min_volume = 0
         max_kd = 100
         selected_intents = []
