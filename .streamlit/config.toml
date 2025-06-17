@@ -1,0 +1,10 @@
+[server]
+port = 8501
+enableCORS = true
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false # Recommended for privacy if not needed for analytics
+
+[client]
+toolbarMode = "minimal" # Keeps the Streamlit toolbar less intrusive
