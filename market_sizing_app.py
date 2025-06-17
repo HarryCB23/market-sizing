@@ -181,6 +181,10 @@ if uploaded_file is not None:
 
             # Apply custom keyword type classification
             df_keywords['keyword_type'] = df_keywords['keyword'].apply(get_keyword_type)
+            
+            # New: Calculate word count for each keyword
+            df_keywords['word_count'] = df_keywords['keyword'].apply(lambda x: len(str(x).split()))
+
 
             # --- Trend Analysis (using Ahrefs Growth columns) ---
             # Prioritize Growth (12mo), then (6mo), then (3mo)
@@ -298,15 +302,59 @@ if df_keywords is not None:
     # --- Market Breakdown Visualizations ---
     st.header("3. Market Breakdown & Insights") # Re-numbered header
 
-    # Keyword Type Breakdown
-    st.subheader("Keyword Type Breakdown (SAM)")
+    # Keyword Word Count Breakdown
+    st.subheader("Keyword Word Count & Volume Distribution (SAM)")
     if not df_sam.empty:
-        type_counts = df_sam['keyword_type'].value_counts().reset_index()
-        type_counts.columns = ['Keyword Type', 'Count']
-        fig_type = px.pie(type_counts, values='Count', names='Keyword Type', title='Distribution of Keyword Types in SAM')
-        st.plotly_chart(fig_type, use_container_width=True)
+        # Group by word_count and calculate count and sum of volume
+        word_count_data = df_sam.groupby('word_count').agg(
+            keyword_count=('keyword', 'count'),
+            total_volume=('volume', 'sum')
+        ).reset_index().sort_values(by='word_count')
+
+        # Create combo chart using make_subplots
+        fig_word_count = make_subplots(specs=[[{"secondary_y": True}]])
+
+        # Add bar chart for keyword count (primary y-axis)
+        fig_word_count.add_trace(
+            go.Bar(
+                x=word_count_data['word_count'],
+                y=word_count_data['keyword_count'],
+                name='Number of Keywords',
+                marker_color='#1f77b4' # A shade of blue
+            ),
+            secondary_y=False,
+        )
+
+        # Add line chart for total search volume (secondary y-axis)
+        fig_word_count.add_trace(
+            go.Scatter(
+                x=word_count_data['word_count'],
+                y=word_count_data['total_volume'],
+                name='Total Search Volume',
+                mode='lines+markers',
+                marker_color='#d62728' # A shade of red
+            ),
+            secondary_y=True,
+        )
+
+        # Set x-axis title
+        fig_word_count.update_xaxes(title_text="Number of Words in Keyword", tickmode='linear')
+
+        # Set y-axes titles
+        fig_word_count.update_yaxes(title_text="Number of Keywords", secondary_y=False)
+        fig_word_count.update_yaxes(title_text="Total Search Volume", secondary_y=True, showgrid=False) # Hide grid for secondary axis
+
+        fig_word_count.update_layout(
+            title_text='Keyword Count and Total Volume by Word Count in SAM',
+            hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+
+        st.plotly_chart(fig_word_count, use_container_width=True)
+        st.info("This chart shows the distribution of keywords by their word count and the corresponding total search volume for each. It helps identify the prevalence and search demand for shorter (head) vs. longer (long-tail) queries.")
     else:
-        st.warning("No keywords in SAM for breakdown. Adjust your filters in the sidebar.")
+        st.warning("No keywords in SAM for word count breakdown. Adjust your filters in the sidebar.")
+
 
     # Search Intent Breakdown
     st.subheader("Search Intent Breakdown (SAM)")
