@@ -307,28 +307,31 @@ if df_keywords is not None:
     # New, cleaner layout for estimated market potential
     col_tam, col_sam, col_som = st.columns(3)
 
+    # Define a consistent blue color
+    blue_color = "#1f77b4"
+
     with col_tam:
         st.markdown(
             f"""
             <div style="
-                border: 1px solid #ccc; 
-                border-radius: 8px; 
-                padding: 15px; 
-                text-align: center; 
-                height: 150px; 
-                display: flex; 
-                flex-direction: column; 
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                padding: 15px;
+                text-align: center;
+                min-height: 150px; /* Use min-height instead of fixed height */
+                display: flex;
+                flex-direction: column;
                 justify-content: space-between;
                 box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
             ">
-                <h4 style="color:#262730; margin-bottom: 5px;">Total Addressable Market (TAM)</h4>
-                <p style="font-size: 1.5em; font-weight: bold; color:#1f77b4; margin: 0;">{total_market_volume_tam:,} Searches</p>
-                <p style="font-size: 0.8em; color:#555; margin-top: 5px;">
+                <h4 style="color:#262730; margin-bottom: 0px;">Total Addressable Market (TAM)</h4>
+                <p style="font-size: 1.3em; font-weight: bold; color:{blue_color}; margin: 5px 0;">{total_market_volume_tam:,} Searches</p>
+                <p style="font-size: 0.8em; color:#555; margin-top: 8px;">
                     Est. Clicks: {int(total_market_clicks_tam):,}<br>
                     Pot. Revenue: ${total_market_revenue_tam:,.2f}
                 </p>
             </div>
-            """, 
+            """,
             unsafe_allow_html=True
         )
 
@@ -336,24 +339,24 @@ if df_keywords is not None:
         st.markdown(
             f"""
             <div style="
-                border: 1px solid #ccc; 
-                border-radius: 8px; 
-                padding: 15px; 
-                text-align: center; 
-                height: 150px; 
-                display: flex; 
-                flex-direction: column; 
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                padding: 15px;
+                text-align: center;
+                min-height: 150px; /* Use min-height instead of fixed height */
+                display: flex;
+                flex-direction: column;
                 justify-content: space-between;
                 box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
             ">
-                <h4 style="color:#262730; margin-bottom: 5px;">Serviceable Available Market (SAM)</h4>
-                <p style="font-size: 1.5em; font-weight: bold; color:#28a745; margin: 0;">{serviceable_market_volume_sam:,} Searches</p>
-                <p style="font-size: 0.8em; color:#555; margin-top: 5px;">
+                <h4 style="color:#262730; margin-bottom: 0px;">Serviceable Available Market (SAM)</h4>
+                <p style="font-size: 1.3em; font-weight: bold; color:{blue_color}; margin: 5px 0;">{serviceable_market_volume_sam:,} Searches</p>
+                <p style="font-size: 0.8em; color:#555; margin-top: 8px;">
                     Est. Clicks: {int(serviceable_market_clicks_sam):,}<br>
                     Pot. Revenue: ${serviceable_market_revenue_sam:,.2f}
                 </p>
             </div>
-            """, 
+            """,
             unsafe_allow_html=True
         )
 
@@ -361,24 +364,24 @@ if df_keywords is not None:
         st.markdown(
             f"""
             <div style="
-                border: 1px solid #ccc; 
-                border-radius: 8px; 
-                padding: 15px; 
-                text-align: center; 
-                height: 150px; 
-                display: flex; 
-                flex-direction: column; 
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                padding: 15px;
+                text-align: center;
+                min-height: 150px; /* Use min-height instead of fixed height */
+                display: flex;
+                flex-direction: column;
                 justify-content: space-between;
                 box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
             ">
-                <h4 style="color:#262730; margin-bottom: 5px;">Serviceable Obtainable Market (SOM) ({som_percentage}%)</h4>
-                <p style="font-size: 1.5em; font-weight: bold; color:#ff7f0e; margin: 0;">{int(obtainable_market_volume_som):,} Searches</p>
-                <p style="font-size: 0.8em; color:#555; margin-top: 5px;">
+                <h4 style="color:#262730; margin-bottom: 0px;">Serviceable Obtainable Market (SOM) ({som_percentage}%)</h4>
+                <p style="font-size: 1.3em; font-weight: bold; color:{blue_color}; margin: 5px 0;">{int(obtainable_market_volume_som):,} Searches</p>
+                <p style="font-size: 0.8em; color:#555; margin-top: 8px;">
                     Est. Clicks: {int(obtainable_market_clicks_som):,}<br>
                     Pot. Revenue: ${obtainable_market_revenue_som:,.2f}
                 </p>
             </div>
-            """, 
+            """,
             unsafe_allow_html=True
         )
     st.markdown("---")
