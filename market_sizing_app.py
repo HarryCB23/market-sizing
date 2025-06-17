@@ -202,42 +202,27 @@ if uploaded_file is not None:
 
 
 if df_keywords is not None:
-    st.divider()
-
-    # --- 2. Market Definition and Sizing Parameters ---
-    st.header("2. Define Your Market")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.subheader("Market Filtering")
+    # --- Sidebar for Market Definition and Sizing Parameters ---
+    with st.sidebar:
+        st.header("⚙️ Market Definition & Parameters")
+        st.subheader("Market Filtering (SAM)")
         st.write("Filter keywords to define your specific Serviceable Available Market (SAM).")
 
-        min_volume = st.slider("Minimum Monthly Search Volume for SAM", min_value=0, max_value=int(df_keywords['volume'].max()), value=0, step=10)
-        max_kd = st.slider("Maximum Keyword Difficulty (KD) for SAM", min_value=0, max_value=100, value=100, step=5)
+        min_volume = st.slider("Minimum Monthly Search Volume", min_value=0, max_value=int(df_keywords['volume'].max()), value=0, step=10)
+        max_kd = st.slider("Maximum Keyword Difficulty (KD)", min_value=0, max_value=100, value=100, step=5)
         
         selected_intents = st.multiselect(
-            "Include Search Intents for SAM",
+            "Include Search Intents",
             options=df_keywords['search_intent'].unique(),
             default=df_keywords['search_intent'].unique()
         )
 
         selected_keyword_types = st.multiselect(
-            "Include Keyword Types for SAM",
+            "Include Keyword Types",
             options=df_keywords['keyword_type'].unique(),
             default=df_keywords['keyword_type'].unique()
         )
 
-        # Apply filters to create SAM dataset
-        df_sam = df_keywords[
-            (df_keywords['volume'] >= min_volume) &
-            (df_keywords['kd'] <= max_kd) &
-            (df_keywords['search_intent'].isin(selected_intents)) &
-            (df_keywords['keyword_type'].isin(selected_keyword_types))
-        ].copy() # Use .copy() to avoid SettingWithCopyWarning
-
-
-    with col2:
         st.subheader("Monetization & Obtainable Market (SOM)")
 
         average_rpm = st.number_input(
@@ -258,10 +243,19 @@ if df_keywords is not None:
         )
         st.info(f"This is the percentage of the Serviceable Available Market (SAM) you realistically expect to capture.")
 
+    # Apply filters to create SAM dataset (moved here to ensure sidebar variables are set)
+    df_sam = df_keywords[
+        (df_keywords['volume'] >= min_volume) &
+        (df_keywords['kd'] <= max_kd) &
+        (df_keywords['search_intent'].isin(selected_intents)) &
+        (df_keywords['keyword_type'].isin(selected_keyword_types))
+    ].copy() # Use .copy() to avoid SettingWithCopyWarning
+
+
     st.divider()
 
     # --- 3. Market Sizing Calculations ---
-    st.header("3. Market Sizing Overview")
+    st.header("2. Market Sizing Overview") # Re-numbered header
 
     # Calculate TAM, SAM, SOM
     total_market_volume_tam = df_keywords['volume'].sum()
@@ -296,7 +290,7 @@ if df_keywords is not None:
     st.markdown("---")
 
     # --- Market Breakdown Visualizations ---
-    st.header("4. Market Breakdown & Insights")
+    st.header("3. Market Breakdown & Insights") # Re-numbered header
 
     # Keyword Type Breakdown
     st.subheader("Keyword Type Breakdown (SAM)")
@@ -306,7 +300,7 @@ if df_keywords is not None:
         fig_type = px.pie(type_counts, values='Count', names='Keyword Type', title='Distribution of Keyword Types in SAM')
         st.plotly_chart(fig_type, use_container_width=True)
     else:
-        st.warning("No keywords in SAM for breakdown. Adjust your filters.")
+        st.warning("No keywords in SAM for breakdown. Adjust your filters in the sidebar.")
 
     # Search Intent Breakdown
     st.subheader("Search Intent Breakdown (SAM)")
@@ -316,7 +310,7 @@ if df_keywords is not None:
         fig_intent = px.pie(intent_counts, values='Count', names='Search Intent', title='Distribution of Search Intents in SAM')
         st.plotly_chart(fig_intent, use_container_width=True)
     else:
-        st.warning("No keywords in SAM for breakdown. Adjust your filters.")
+        st.warning("No keywords in SAM for breakdown. Adjust your filters in the sidebar.")
 
     # Average Keyword Difficulty
     st.subheader("Average Keyword Difficulty (SAM)")
@@ -324,7 +318,7 @@ if df_keywords is not None:
         avg_kd_sam = df_sam['kd'].mean()
         st.metric("Average KD in SAM", f"{avg_kd_sam:.2f}")
     else:
-        st.warning("No keywords in SAM to calculate average KD.")
+        st.warning("No keywords in SAM to calculate average KD. Adjust your filters in the sidebar.")
 
     # SERP Features Breakdown
     st.subheader("SERP Features Present (SAM)")
@@ -342,9 +336,9 @@ if df_keywords is not None:
             fig_features = px.bar(features_df, x='SERP Feature', y='Count', title='Count of SERP Features in SAM Keywords')
             st.plotly_chart(fig_features, use_container_width=True)
         else:
-            st.info("No specific SERP features detected in the selected keywords (or 'N/A' for all).")
+            st.info("No specific SERP features detected in the selected keywords (or 'N/A' for all). Adjust your filters in the sidebar.")
     else:
-        st.warning("No keywords in SAM for SERP features breakdown.")
+        st.warning("No keywords in SAM for SERP features breakdown. Adjust your filters in the sidebar.")
 
     # Topic Trending Up or Down
     if 'trend' in df_keywords.columns and df_keywords['trend'].nunique() > 1: # Check if trend analysis was performed and there's variation
@@ -359,8 +353,8 @@ if df_keywords is not None:
 
     st.divider()
 
-    # --- 6. Google Search Console Connection (Placeholder) ---
-    st.header("5. Your Market Position (via Google Search Console)")
+    # --- 5. Google Search Console Connection (Placeholder) ---
+    st.header("4. Your Market Position (via Google Search Console)") # Re-numbered header
     st.info("""
         This section would connect to the Google Search Console API to show your actual performance (impressions, clicks, average position)
         over time for the keywords identified in your market. This allows for a comparison of your obtainable market against your current reality.
