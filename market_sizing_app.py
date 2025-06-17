@@ -9,9 +9,10 @@ st.set_page_config(layout="wide", page_title="SEO Market Sizing Tool")
 
 # --- Helper Functions ---
 
-def classify_search_intent(keyword):
+def classify_search_intent_custom(keyword):
     """
-    Classifies keyword intent based on common patterns.
+    Classifies keyword intent based on common patterns. This is a fallback
+    if Ahrefs 'Intents' column is not available.
     Args:
         keyword (str): The keyword to classify.
     Returns:
@@ -19,42 +20,54 @@ def classify_search_intent(keyword):
     """
     keyword_lower = keyword.lower()
 
-    # Transactional intent (most specific)
+    # --- Transactional Intent ---
     transactional_keywords = [
-        'buy', 'shop', 'order', 'price', 'cost', 'deal', 'discount', 'coupon', 'purchase',
-        'for sale', 'shipping', 'checkout', 'get (product)', 'download', 'sign up', 'subscribe'
+        r'\bbuy\b', r'\bshop\b', r'\border\b', r'\bprice\b', r'\bcost\b', r'\bdeal\b',
+        r'\bdiscount\b', r'\bcoupon\b', r'\bpurchase\b', r'\bfor sale\b', r'\bsale\b',
+        r'\bshipping\b', r'\bcheckout\b', r'\bget\s+(\w+)\b', r'\bdownload\b',
+        r'\bsign\s+up\b', r'\bsignup\b', r'\bsubscribe\b', r'\btrial\b', r'\bdemo\b',
+        r'\bapply\b', r'\bcourse\b', r'\bwebinar\b', r'\bticket\b', r'\bbook\b',
+        r'\bhire\b', r'\bfree\s+trial\b', r'\b(buy|order|get|purchase)\s+now\b'
     ]
-    if any(re.search(r'\b' + k.replace('(product)', r'\w+') + r'\b', keyword_lower) for k in transactional_keywords):
+    if any(re.search(k, keyword_lower) for k in transactional_keywords):
         return "Transactional"
 
-    # Commercial investigation intent
+    # --- Commercial Investigation Intent ---
     commercial_keywords = [
-        'best', 'review', 'vs', 'comparison', 'top', 'compare', 'alternatives', 'product', 'service',
-        'brand', 'features', 'specifications', 'ratings', 'pros and cons', 'which (product)',
-        'how to choose', 'x for y', 'pricing', 'cost of'
+        r'\bbest\b', r'\breview\b', r'\bvs\b', r'\bcomparison\b', r'\btop\s+\d+\b', r'\bcompare\b',
+        r'\balternatives\b', r'\bproduct\b', r'\bservice\b', r'\bbrand\b', r'\bfeatures\b',
+        r'\bspecifications\b', r'\bratings\b', r'\bpros\s+and\s+cons\b', r'\bwhich\s+(\w+)\b',
+        r'\bhow\s+to\s+choose\b', r'\bx\s+for\s+y\b', r'\bpricing\b', r'\bcost\s+of\b',
+        r'\bmodel\b', r'\b(product)\s+list\b', r'\b(service)\s+provider\b', r'\bcritique\b',
+        r'\bexamples\s+of\b' # Can be informational, but often precedes commercial
     ]
-    if any(re.search(r'\b' + k.replace('(product)', r'\w+') + r'\b', keyword_lower) for k in commercial_keywords):
+    if any(re.search(k, keyword_lower) for k in commercial_keywords):
         return "Commercial Investigation"
 
-    # Informational intent
+    # --- Informational Intent ---
     informational_keywords = [
-        'how to', 'what is', 'guide', 'tutorial', 'examples', 'why', 'when', 'where', 'who',
-        'definition', 'ideas', 'learn', 'facts', 'history', 'meaning', 'symptoms', 'causes',
-        'explain', 'information', 'tips', 'advice', 'example of', 'types of'
+        r'\bhow\s+to\b', r'\bwhat\s+is\b', r'\bguide\b', r'\btutorial\b', r'\bwhy\b', r'\bwhen\b',
+        r'\bwhere\b', r'\bwho\b', r'\bdefinition\b', r'\bideas\b', r'\blearn\b', r'\bfacts\b',
+        r'\bhistory\b', r'\bmeaning\b', r'\bsymptoms\b', r'\bcauses\b', r'\bexplain\b',
+        r'\binformation\b', r'\btips\b', r'\badvice\b', r'\bexample\s+of\b', r'\btypes\s+of\b',
+        r'\b(verb)\s+process\b', r'\bconcept\b', r'\btheory\b', r'\bwiki\b', r'\bmanual\b',
+        r'\bfaq\b', r'\bproblems\b', r'\bsolutions\b', r'\b(what|how|why)\s+do\b'
     ]
-    if any(re.search(r'\b' + k + r'\b', keyword_lower) for k in informational_keywords):
+    if any(re.search(k, keyword_lower) for k in informational_keywords):
         return "Informational"
 
-    # Navigational intent (still simplified without a specific brand list)
-    # Could include common navigational phrases
-    navigational_keywords = ['login', 'my account', 'contact us', 'homepage', 'website']
-    if any(k in keyword_lower for k in navigational_keywords):
-        return "Navigational"
-    
-    # Simple heuristic for potential brand/specific site if very short query
-    if len(keyword.split()) <= 2 and not any(k in keyword_lower for k in transactional_keywords + commercial_keywords + informational_keywords):
+    # --- Navigational Intent (still simplified without a specific brand list) ---
+    navigational_keywords = [
+        r'\blogin\b', r'\bmy\s+account\b', r'\bcontact\s+us\b',
+        r'\bhomepage\b', r'\bofficial\s+site\b', r'\bwebsite\b', r'\bdashboard\b'
+    ]
+    # For navigational, we need to be careful not to catch informational phrases.
+    # A simple heuristic for direct navigational searches is very short queries often including a proper noun.
+    if len(keyword.split()) <= 2:
         if any(char.isupper() for char in keyword): # Check for capitalization indicating a proper noun/brand
             return "Navigational"
+    if any(re.search(k, keyword_lower) for k in navigational_keywords):
+        return "Navigational"
 
 
     return "Unknown"
@@ -86,7 +99,8 @@ st.header("1. Upload Ahrefs Keyword Data")
 st.info("""
     Please export your keyword data from Ahrefs (e.g., from Keywords Explorer or Site Explorer's Organic Keywords report)
     as a CSV file. Ensure the export includes at least the following columns:
-    `Keyword`, `Volume`, `Difficulty`, `SERP Features`, `Parent Topic`.
+    `Keyword`, `Volume`, `Difficulty`, `SERP Features`.
+    **Highly recommended:** Include the `Intents` column for more accurate search intent classification.
     For improved trend analysis, ensure `Growth (3mo)`, `Growth (6mo)`, or `Growth (12mo)` columns are also included.
 """)
 uploaded_file = st.file_uploader("Choose an Ahrefs CSV file", type="csv")
@@ -136,17 +150,43 @@ if uploaded_file is not None:
             df_keywords['serp_features'] = df_keywords['serp_features'].fillna('')
             df_keywords['parent_topic'] = df_keywords.get('parent_topic', df_keywords['keyword']).fillna(df_keywords['keyword']) # Use keyword if parent_topic is missing
 
-            # Apply custom classification functions
-            df_keywords['search_intent'] = df_keywords['keyword'].apply(classify_search_intent)
+            # --- Search Intent Classification ---
+            if 'intents' in df_keywords.columns:
+                st.info("Using Ahrefs 'Intents' column for search intent classification.")
+                def parse_ahrefs_intent(intent_str):
+                    if pd.isna(intent_str) or not intent_str:
+                        return "Unknown"
+                    intents = [i.strip().lower() for i in intent_str.split(',')]
+                    
+                    # Prioritize core intents
+                    if 'transactional' in intents:
+                        return "Transactional"
+                    if 'commercial' in intents:
+                        return "Commercial Investigation"
+                    if 'informational' in intents:
+                        return "Informational"
+                    if 'navigational' in intents:
+                        return "Navigational"
+                    return "Unknown"
+                df_keywords['search_intent'] = df_keywords['intents'].apply(parse_ahrefs_intent)
+            else:
+                st.warning("Ahrefs 'Intents' column not found. Falling back to custom keyword-based intent classification (may be less accurate).")
+                df_keywords['search_intent'] = df_keywords['keyword'].apply(classify_search_intent_custom)
+
+            # Apply custom keyword type classification
             df_keywords['keyword_type'] = df_keywords['keyword'].apply(get_keyword_type)
 
             # --- Trend Analysis (using Ahrefs Growth columns) ---
             # Prioritize Growth (12mo), then (6mo), then (3mo)
             growth_col_found = None
             for col_suffix in ['12mo', '6mo', '3mo']:
-                col_name = f'growth_({col_suffix})'
-                if col_name in df_keywords.columns:
-                    growth_col_found = col_name
+                # Handle variations in column names like 'global_growth_(12mo)' or just 'growth_(12mo)'
+                potential_col_names = [f'growth_({col_suffix})', f'global_growth_({col_suffix})']
+                for pc_name in potential_col_names:
+                    if pc_name in df_keywords.columns:
+                        growth_col_found = pc_name
+                        break
+                if growth_col_found:
                     break
             
             if growth_col_found:
