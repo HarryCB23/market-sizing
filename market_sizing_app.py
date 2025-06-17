@@ -19,25 +19,43 @@ def classify_search_intent(keyword):
     """
     keyword_lower = keyword.lower()
 
-    # Transactional intent
-    transactional_keywords = ['buy', 'shop', 'order', 'price', 'cost', 'deal', 'discount', 'coupon', 'purchase', 'for sale']
-    if any(k in keyword_lower for k in transactional_keywords):
+    # Transactional intent (most specific)
+    transactional_keywords = [
+        'buy', 'shop', 'order', 'price', 'cost', 'deal', 'discount', 'coupon', 'purchase',
+        'for sale', 'shipping', 'checkout', 'get (product)', 'download', 'sign up', 'subscribe'
+    ]
+    if any(re.search(r'\b' + k.replace('(product)', r'\w+') + r'\b', keyword_lower) for k in transactional_keywords):
         return "Transactional"
 
     # Commercial investigation intent
-    commercial_keywords = ['best', 'review', 'vs', 'comparison', 'top', 'compare', 'alternatives', 'product', 'service']
-    if any(k in keyword_lower for k in commercial_keywords):
+    commercial_keywords = [
+        'best', 'review', 'vs', 'comparison', 'top', 'compare', 'alternatives', 'product', 'service',
+        'brand', 'features', 'specifications', 'ratings', 'pros and cons', 'which (product)',
+        'how to choose', 'x for y', 'pricing', 'cost of'
+    ]
+    if any(re.search(r'\b' + k.replace('(product)', r'\w+') + r'\b', keyword_lower) for k in commercial_keywords):
         return "Commercial Investigation"
 
     # Informational intent
-    informational_keywords = ['how to', 'what is', 'guide', 'tutorial', 'examples', 'why', 'when', 'where', 'who', 'definition', 'ideas', 'learn']
-    if any(k in keyword_lower for k in informational_keywords):
+    informational_keywords = [
+        'how to', 'what is', 'guide', 'tutorial', 'examples', 'why', 'when', 'where', 'who',
+        'definition', 'ideas', 'learn', 'facts', 'history', 'meaning', 'symptoms', 'causes',
+        'explain', 'information', 'tips', 'advice', 'example of', 'types of'
+    ]
+    if any(re.search(r'\b' + k + r'\b', keyword_lower) for k in informational_keywords):
         return "Informational"
 
-    # Navigational intent (harder without specific brand list, but can look for very short, specific queries)
-    # This is a simplified approach; real-world navigational often involves specific brand names
-    if len(keyword.split()) <= 2 and any(char.isupper() for char in keyword): # Simple heuristic for potential brand
+    # Navigational intent (still simplified without a specific brand list)
+    # Could include common navigational phrases
+    navigational_keywords = ['login', 'my account', 'contact us', 'homepage', 'website']
+    if any(k in keyword_lower for k in navigational_keywords):
         return "Navigational"
+    
+    # Simple heuristic for potential brand/specific site if very short query
+    if len(keyword.split()) <= 2 and not any(k in keyword_lower for k in transactional_keywords + commercial_keywords + informational_keywords):
+        if any(char.isupper() for char in keyword): # Check for capitalization indicating a proper noun/brand
+            return "Navigational"
+
 
     return "Unknown"
 
@@ -69,7 +87,7 @@ st.info("""
     Please export your keyword data from Ahrefs (e.g., from Keywords Explorer or Site Explorer's Organic Keywords report)
     as a CSV file. Ensure the export includes at least the following columns:
     `Keyword`, `Volume`, `Difficulty`, `SERP Features`, `Parent Topic`.
-    If you want trend analysis, ensure historical volume columns are also included (e.g., `Volume Jan 2024`, `Volume Feb 2024`, etc.).
+    For improved trend analysis, ensure `Growth (3mo)`, `Growth (6mo)`, or `Growth (12mo)` columns are also included.
 """)
 uploaded_file = st.file_uploader("Choose an Ahrefs CSV file", type="csv")
 
@@ -96,7 +114,6 @@ if uploaded_file is not None:
         st.error("Could not read the CSV file with common encodings (UTF-8, Latin-1, CP1252, UTF-16). Please check your file's encoding and format.")
     else:
         # Standardize column names for easier access (case-insensitive and handle common variations)
-        original_columns = df_keywords.columns
         df_keywords.columns = [col.strip().replace(' ', '_').replace('.', '').lower() for col in df_keywords.columns]
 
         # Explicitly rename 'difficulty' to 'kd' if present
@@ -123,29 +140,25 @@ if uploaded_file is not None:
             df_keywords['search_intent'] = df_keywords['keyword'].apply(classify_search_intent)
             df_keywords['keyword_type'] = df_keywords['keyword'].apply(get_keyword_type)
 
-            # --- Trend Analysis (looking for historical volume columns) ---
-            # Identify columns that look like monthly volumes (e.g., 'volume_jan_2024')
-            volume_cols = [col for col in df_keywords.columns if re.match(r'volume_(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)_\d{4}', col)]
+            # --- Trend Analysis (using Ahrefs Growth columns) ---
+            # Prioritize Growth (12mo), then (6mo), then (3mo)
+            growth_col_found = None
+            for col_suffix in ['12mo', '6mo', '3mo']:
+                col_name = f'growth_({col_suffix})'
+                if col_name in df_keywords.columns:
+                    growth_col_found = col_name
+                    break
             
-            if len(volume_cols) >= 2: # Need at least 2 months to determine a trend
-                st.info(f"Found {len(volume_cols)} historical volume columns for trend analysis.")
-                # Sort columns by year and month
-                volume_cols_sorted = sorted(volume_cols, key=lambda x: (int(x.split('_')[-1]), pd.to_datetime(x.split('_')[1], format='%b').month))
+            if growth_col_found:
+                st.info(f"Using `{growth_col_found}` column for trend analysis.")
+                df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_found], errors='coerce').fillna(0)
 
-                df_keywords['recent_volume'] = pd.to_numeric(df_keywords[volume_cols_sorted[-1]], errors='coerce').fillna(0)
-                df_keywords['previous_volume'] = pd.to_numeric(df_keywords[volume_cols_sorted[-2]], errors='coerce').fillna(0) # Compare last two available months for a simple trend
-
-                # Calculate monthly change
-                df_keywords['monthly_volume_change'] = df_keywords['recent_volume'] - df_keywords['previous_volume']
-                df_keywords['monthly_volume_change_pct'] = ((df_keywords['recent_volume'] - df_keywords['previous_volume']) / df_keywords['previous_volume'].replace(0, 1)) * 100 # Avoid division by zero
-
-                # Simple trend classification
                 df_keywords['trend'] = 'Stable'
-                df_keywords.loc[df_keywords['monthly_volume_change_pct'] > 10, 'trend'] = 'Trending Up' # Define threshold for 'up'
-                df_keywords.loc[df_keywords['monthly_volume_change_pct'] < -10, 'trend'] = 'Trending Down' # Define threshold for 'down'
+                df_keywords.loc[df_keywords['growth_pct'] > 0, 'trend'] = 'Trending Up'
+                df_keywords.loc[df_keywords['growth_pct'] < 0, 'trend'] = 'Trending Down'
             else:
-                st.warning("Less than two historical volume columns found. Trend analysis will be limited.")
-                df_keywords['trend'] = 'N/A' # Set default if no trend data
+                st.warning("No Ahrefs `Growth (3mo)`, `Growth (6mo)`, or `Growth (12mo)` columns found. Trend analysis will be limited.")
+                df_keywords['trend'] = 'N/A'
 
 
 if df_keywords is not None:
@@ -300,56 +313,14 @@ if df_keywords is not None:
         trend_counts.columns = ['Trend', 'Count']
         fig_trend = px.bar(trend_counts, x='Trend', y='Count', title='Keyword Trend Distribution')
         st.plotly_chart(fig_trend, use_container_width=True)
-        st.info("Trends are calculated based on the last two available historical volume columns in your Ahrefs export (if present).")
+        st.info("Trends are calculated based on Ahrefs 'Growth (Xmo)' columns from your export.")
     else:
-        st.info("Historical volume data for trend analysis is not sufficiently available in your CSV or shows no significant variation.")
-
-    st.divider()
-
-    # --- 5. Competitor Analysis (Placeholder) ---
-    st.header("5. Competitor Analysis")
-    st.info("""
-        To analyze competitors, you would typically need their estimated organic traffic and keyword overlaps.
-        For a full competitor bubble graph, you would either upload separate competitor data or connect to Ahrefs API.
-        For this prototype, we'll provide a placeholder for where you'd input competitor data or where a more
-        advanced integration would pull it.
-    """)
-
-    st.subheader("Top Competitors (Manual Input Placeholder)")
-    comp_data = []
-    num_competitors = st.number_input("Number of Top Competitors to Analyze", min_value=1, max_value=5, value=3)
-
-    for i in range(num_competitors):
-        st.markdown(f"**Competitor {i+1}**")
-        name = st.text_input(f"Name of Competitor {i+1}", key=f"comp_name_{i}")
-        est_traffic = st.number_input(f"Estimated Monthly Organic Traffic for {name} (from Ahrefs Site Explorer)", min_value=0, value=0, step=1000, key=f"comp_traffic_{i}")
-        keywords_overlap = st.number_input(f"Number of Overlapping Keywords with Your Site for {name}", min_value=0, value=0, step=100, key=f"comp_keywords_{i}")
-        if name and est_traffic > 0:
-            comp_data.append({'Competitor': name, 'Estimated Traffic': est_traffic, 'Keyword Overlap': keywords_overlap})
-    
-    if comp_data:
-        df_comp = pd.DataFrame(comp_data)
-        st.write("Competitor Data (Manual Input):")
-        st.dataframe(df_comp)
-
-        # Bubble chart (Traffic vs Keyword Overlap, size by Traffic)
-        if not df_comp.empty:
-            fig_bubble = px.scatter(df_comp, x='Keyword Overlap', y='Estimated Traffic', size='Estimated Traffic',
-                                    text='Competitor', hover_name='Competitor',
-                                    title='Top Competitors: Traffic vs. Keyword Overlap',
-                                    size_max=60)
-            fig_bubble.update_traces(textposition='top center')
-            fig_bubble.update_layout(xaxis_title="Keyword Overlap (with Your Site)",
-                                     yaxis_title="Estimated Monthly Organic Traffic")
-            st.plotly_chart(fig_bubble, use_container_width=True)
-        else:
-            st.info("Enter competitor data to visualize.")
-
+        st.info("Ahrefs Growth columns (e.g., 'Growth (12mo)') not found or show no significant variation. Trend analysis limited.")
 
     st.divider()
 
     # --- 6. Google Search Console Connection (Placeholder) ---
-    st.header("6. Your Market Position (via Google Search Console)")
+    st.header("5. Your Market Position (via Google Search Console)")
     st.info("""
         This section would connect to the Google Search Console API to show your actual performance (impressions, clicks, average position)
         over time for the keywords identified in your market. This allows for a comparison of your obtainable market against your current reality.
@@ -377,5 +348,5 @@ if df_keywords is not None:
     * **Interactive CTR Model:** Allow users to define a custom CTR curve based on ranking positions for more accurate click estimations.
     * **Keyword Grouping:** Enable manual or AI-driven grouping of keywords into content clusters for more refined market analysis.
     * **Downloadable Reports:** Export summary data and visualizations to PDF/CSV.
-    * **Historical Trends:** Deeper analysis of keyword trends beyond just two months.
+    * **Historical Trends:** Deeper analysis of keyword trends using all available historical volume data if the 'Growth' columns aren't sufficient.
     """)
