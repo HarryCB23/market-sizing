@@ -46,7 +46,6 @@ def get_keyword_type(keyword, head_term_word_limit=3):
     Classifies a keyword as 'Head Term' or 'Long Tail' based on word count.
     Args:
         keyword (str): The keyword to classify.
-        head_term_word_limit (int): Maximum number of words for a head term.
     Returns:
         str: 'Head Term' or 'Long Tail'.
     """
@@ -69,30 +68,51 @@ st.header("1. Upload Ahrefs Keyword Data")
 st.info("""
     Please export your keyword data from Ahrefs (e.g., from Keywords Explorer or Site Explorer's Organic Keywords report)
     as a CSV file. Ensure the export includes at least the following columns:
-    `Keyword`, `Volume`, `KD`, `SERP Features`, `Parent Topic`.
+    `Keyword`, `Volume`, `Difficulty`, `SERP Features`, `Parent Topic`.
     If you want trend analysis, ensure historical volume columns are also included (e.g., `Volume Jan 2024`, `Volume Feb 2024`, etc.).
 """)
 uploaded_file = st.file_uploader("Choose an Ahrefs CSV file", type="csv")
 
 df_keywords = None
 if uploaded_file is not None:
-    try:
-        df_keywords = pd.read_csv(uploaded_file)
-        st.success("Ahrefs data loaded successfully!")
-        st.write("First 5 rows of your data:")
-        st.dataframe(df_keywords.head())
-
+    # Try reading CSV with multiple encodings
+    encodings_to_try = ['utf-8', 'latin1', 'cp1252', 'utf-16'] 
+    
+    for encoding in encodings_to_try:
+        try:
+            # Reset file pointer for each attempt
+            uploaded_file.seek(0) 
+            df_keywords = pd.read_csv(uploaded_file, encoding=encoding)
+            st.success(f"Ahrefs data loaded successfully with {encoding} encoding!")
+            break # Exit loop if successful
+        except UnicodeDecodeError:
+            continue # Try next encoding
+        except Exception as e:
+            st.error(f"An unexpected error occurred while reading with {encoding} encoding: {e}")
+            df_keywords = None
+            break # Stop trying if another type of error occurs
+    
+    if df_keywords is None:
+        st.error("Could not read the CSV file with common encodings (UTF-8, Latin-1, CP1252, UTF-16). Please check your file's encoding and format.")
+    else:
         # Standardize column names for easier access (case-insensitive and handle common variations)
+        original_columns = df_keywords.columns
         df_keywords.columns = [col.strip().replace(' ', '_').replace('.', '').lower() for col in df_keywords.columns]
 
-        # Check for essential columns
-        required_cols = ['keyword', 'volume', 'kd', 'serp_features'] # Parent topic might not always be there
+        # Explicitly rename 'difficulty' to 'kd' if present
+        if 'difficulty' in df_keywords.columns and 'kd' not in df_keywords.columns:
+            df_keywords.rename(columns={'difficulty': 'kd'}, inplace=True)
+
+        # Check for essential columns (now including 'kd' after potential rename)
+        required_cols = ['keyword', 'volume', 'kd', 'serp_features'] 
         missing_cols = [col for col in required_cols if col not in df_keywords.columns]
 
         if missing_cols:
-            st.error(f"Missing required columns in your CSV: {', '.join(missing_cols)}. Please check your Ahrefs export settings.")
+            st.error(f"Missing required columns in your CSV: {', '.join(missing_cols)}. Please ensure `Keyword`, `Volume`, `Difficulty`, `SERP Features` are present in your Ahrefs export.")
             df_keywords = None # Invalidate dataframe if essential columns are missing
         else:
+            st.write("First 5 rows of your data:")
+            st.dataframe(df_keywords.head())
             # Data Cleaning and Preparation
             df_keywords['volume'] = pd.to_numeric(df_keywords['volume'], errors='coerce').fillna(0).astype(int)
             df_keywords['kd'] = pd.to_numeric(df_keywords['kd'], errors='coerce').fillna(0).astype(int)
@@ -127,9 +147,6 @@ if uploaded_file is not None:
                 st.warning("Less than two historical volume columns found. Trend analysis will be limited.")
                 df_keywords['trend'] = 'N/A' # Set default if no trend data
 
-
-    except Exception as e:
-        st.error(f"Error reading CSV: {e}. Please ensure it's a valid CSV file.")
 
 if df_keywords is not None:
     st.divider()
