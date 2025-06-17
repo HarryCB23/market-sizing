@@ -263,7 +263,7 @@ with st.sidebar:
         st.info(f"This is the percentage of the Serviceable Available Market (SAM) you realistically expect to capture.")
     else:
         # If no file is uploaded yet, provide dummy values for sidebar controls and a message
-        st.warning("Upload your Ahrefs data via the file uploader above to enable market definition filters and parameters.")
+        st.warning("Upload your Ahrefs data via the file uploader in the sidebar to enable market definition filters and parameters.")
         min_volume = 0
         max_kd = 100
         selected_intents = []
@@ -303,21 +303,84 @@ if df_keywords is not None:
 
 
     st.subheader("Estimated Market Potential")
-    col1, col2, col3 = st.columns(3)
+    
+    # New, cleaner layout for estimated market potential
+    col_tam, col_sam, col_som = st.columns(3)
 
-    with col1:
-        st.metric("Total Addressable Market (TAM)", f"{total_market_volume_tam:,} Monthly Searches")
-        st.caption(f"Estimated Clicks: {int(total_market_clicks_tam):,} | Potential Revenue: ${total_market_revenue_tam:,.2f}")
+    with col_tam:
+        st.markdown(
+            f"""
+            <div style="
+                border: 1px solid #ccc; 
+                border-radius: 8px; 
+                padding: 15px; 
+                text-align: center; 
+                height: 150px; 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: space-between;
+                box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+            ">
+                <h4 style="color:#262730; margin-bottom: 5px;">Total Addressable Market (TAM)</h4>
+                <p style="font-size: 1.5em; font-weight: bold; color:#1f77b4; margin: 0;">{total_market_volume_tam:,} Searches</p>
+                <p style="font-size: 0.8em; color:#555; margin-top: 5px;">
+                    Est. Clicks: {int(total_market_clicks_tam):,}<br>
+                    Pot. Revenue: ${total_market_revenue_tam:,.2f}
+                </p>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
 
-    with col2:
-        st.metric("Serviceable Available Market (SAM)", f"{serviceable_market_volume_sam:,} Monthly Searches")
-        st.caption(f"Estimated Clicks: {int(serviceable_market_clicks_sam):,} | Potential Revenue: ${serviceable_market_revenue_sam:,.2f}")
+    with col_sam:
+        st.markdown(
+            f"""
+            <div style="
+                border: 1px solid #ccc; 
+                border-radius: 8px; 
+                padding: 15px; 
+                text-align: center; 
+                height: 150px; 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: space-between;
+                box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+            ">
+                <h4 style="color:#262730; margin-bottom: 5px;">Serviceable Available Market (SAM)</h4>
+                <p style="font-size: 1.5em; font-weight: bold; color:#28a745; margin: 0;">{serviceable_market_volume_sam:,} Searches</p>
+                <p style="font-size: 0.8em; color:#555; margin-top: 5px;">
+                    Est. Clicks: {int(serviceable_market_clicks_sam):,}<br>
+                    Pot. Revenue: ${serviceable_market_revenue_sam:,.2f}
+                </p>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
 
-
-    with col3:
-        st.metric(f"Serviceable Obtainable Market (SOM) ({som_percentage}%)", f"{int(obtainable_market_volume_som):,} Monthly Searches")
-        st.caption(f"Estimated Clicks: {int(obtainable_market_clicks_som):,} | Potential Revenue: ${obtainable_market_revenue_som:,.2f}")
-
+    with col_som:
+        st.markdown(
+            f"""
+            <div style="
+                border: 1px solid #ccc; 
+                border-radius: 8px; 
+                padding: 15px; 
+                text-align: center; 
+                height: 150px; 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: space-between;
+                box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+            ">
+                <h4 style="color:#262730; margin-bottom: 5px;">Serviceable Obtainable Market (SOM) ({som_percentage}%)</h4>
+                <p style="font-size: 1.5em; font-weight: bold; color:#ff7f0e; margin: 0;">{int(obtainable_market_volume_som):,} Searches</p>
+                <p style="font-size: 0.8em; color:#555; margin-top: 5px;">
+                    Est. Clicks: {int(obtainable_market_clicks_som):,}<br>
+                    Pot. Revenue: ${obtainable_market_revenue_som:,.2f}
+                </p>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
     st.markdown("---")
 
     # --- Market Breakdown Visualizations ---
