@@ -156,8 +156,8 @@ with st.sidebar:
                 df_keywords = None # Invalidate dataframe if essential columns are missing
             else:
                 # Data Cleaning and Preparation
-                st.write("First 5 rows of your data:")
-                st.dataframe(df_keywords.head())
+                # st.write("First 5 rows of your data:") # Removed from sidebar
+                # st.dataframe(df_keywords.head()) # Removed from sidebar
                 df_keywords['volume'] = pd.to_numeric(df_keywords['volume'], errors='coerce').fillna(0).astype(int)
                 df_keywords['kd'] = pd.to_numeric(df_keywords['kd'], errors='coerce').fillna(0).astype(int)
                 df_keywords['serp_features'] = df_keywords['serp_features'].fillna('')
@@ -170,7 +170,7 @@ with st.sidebar:
 
                 # --- Search Intent Classification ---
                 if 'intents' in df_keywords.columns:
-                    st.info("Using Ahrefs 'Intents' column for search intent classification.")
+                    # st.info("Using Ahrefs 'Intents' column for search intent classification.") # Removed from sidebar
                     def parse_ahrefs_intent(intent_str):
                         if pd.isna(intent_str) or not intent_str:
                             return "Unknown"
@@ -212,7 +212,7 @@ with st.sidebar:
                         break
                 
                 if growth_col_found:
-                    st.info(f"Using `{growth_col_found}` column for trend analysis.")
+                    # st.info(f"Using `{growth_col_found}` column for trend analysis.") # Removed from sidebar
                     df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_found], errors='coerce').fillna(0)
 
                     df_keywords['trend'] = 'Stable'
@@ -377,15 +377,62 @@ if df_keywords is not None:
         st.warning("No keywords in SAM for word count breakdown. Adjust your filters in the sidebar.")
 
 
-    # Search Intent Breakdown
-    st.subheader("Search Intent Breakdown (SAM)")
+    # Search Intent Breakdown (Combo Chart)
+    st.subheader("Search Intent Breakdown (SAM) by Volume")
     if not df_sam.empty:
-        intent_counts = df_sam['search_intent'].value_counts().reset_index()
-        intent_counts.columns = ['Search Intent', 'Count']
-        fig_intent = px.pie(intent_counts, values='Count', names='Search Intent', title='Distribution of Search Intents in SAM')
-        st.plotly_chart(fig_intent, use_container_width=True)
+        # Group by search_intent and calculate count and sum of volume
+        intent_data = df_sam.groupby('search_intent').agg(
+            keyword_count=('keyword', 'count'),
+            total_volume=('volume', 'sum')
+        ).reset_index().sort_values(by='total_volume', ascending=False) # Sort by volume for consistent display
+
+        if not intent_data.empty:
+            # Create combo chart using make_subplots
+            fig_intent_combo = make_subplots(specs=[[{"secondary_y": True}]])
+
+            # Add bar chart for keyword count (primary y-axis)
+            fig_intent_combo.add_trace(
+                go.Bar(
+                    x=intent_data['search_intent'],
+                    y=intent_data['keyword_count'],
+                    name='Number of Keywords',
+                    marker_color='#1f77b4' # A shade of blue
+                ),
+                secondary_y=False,
+            )
+
+            # Add line chart for total search volume (secondary y-axis)
+            fig_intent_combo.add_trace(
+                go.Scatter(
+                    x=intent_data['search_intent'],
+                    y=intent_data['total_volume'],
+                    name='Total Search Volume',
+                    mode='lines+markers',
+                    marker_color='#d62728' # A shade of red
+                ),
+                secondary_y=True,
+            )
+
+            # Set x-axis title and tick angle
+            fig_intent_combo.update_xaxes(title_text="Search Intent")
+
+            # Set y-axes titles
+            fig_intent_combo.update_yaxes(title_text="Number of Keywords", secondary_y=False)
+            fig_intent_combo.update_yaxes(title_text="Total Search Volume", secondary_y=True, showgrid=False) # Hide grid for secondary axis
+
+            fig_intent_combo.update_layout(
+                title_text='Search Intent Distribution and Total Volume in SAM',
+                hovermode="x unified",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+
+            st.plotly_chart(fig_intent_combo, use_container_width=True)
+            st.info("This chart breaks down keywords by their primary search intent, showing both the count of keywords and their aggregated search volume. This helps prioritize intents with higher market potential.")
+        else:
+            st.warning("No search intent data found in SAM for this chart. Adjust your filters in the sidebar.")
     else:
         st.warning("No keywords in SAM for breakdown. Adjust your filters in the sidebar.")
+
 
     # Top Parent Categories by Volume & Average KD
     st.subheader("Top Parent Categories by Volume & Average KD")
