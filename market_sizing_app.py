@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots # Import make_subplots
 import re # For regex-based search intent classification
 
 # --- Configuration ---
@@ -326,15 +327,12 @@ if df_keywords is not None:
             average_kd=('kd', 'mean')
         ).reset_index()
 
-        # Sort by total volume and get the top 120 (for line chart range)
-        parent_topic_data_sorted = parent_topic_data.sort_values(by='total_volume', ascending=False)
-        
-        # Take the top 10 for the bar chart display
-        top_10_parent_topics = parent_topic_data_sorted.head(10)
+        # Sort by total volume and get the top 10 for display
+        top_10_parent_topics = parent_topic_data.sort_values(by='total_volume', ascending=False).head(10)
 
         if not top_10_parent_topics.empty:
-            # Create combo chart
-            fig_combo = go.Figure()
+            # Create combo chart using make_subplots
+            fig_combo = make_subplots(specs=[[{"secondary_y": True}]])
 
             # Add bar chart for total volume (primary y-axis)
             fig_combo.add_trace(
