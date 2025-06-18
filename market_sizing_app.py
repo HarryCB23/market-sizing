@@ -605,23 +605,25 @@ if df_keywords is not None:
             st.plotly_chart(fig_combo, use_container_width=True)
             st.info("This chart displays the top 10 parent topics by total search volume, with their average Keyword Difficulty (KD) overlaid. Use the metrics to identify high-volume, potentially lower-difficulty opportunities.")
 
-            # New: Display table for Top 10 Parent Categories
+            # New: Display table for Top 10 Parent Categories as collapsible
             st.subheader("Top 10 Parent Categories Details")
-            st.dataframe(
-                top_10_parent_topics.rename(columns={
-                    'total_volume': 'Total Volume',
-                    'average_kd': 'Avg. KD',
-                    'average_cpc': 'Avg. CPC',
-                    'weighted_growth_pct': 'Avg. Growth (%)'
-                }).style.format({
-                    'Total Volume': '{:,.0f}',
-                    'Avg. KD': '{:.2f}',
-                    'Avg. CPC': '${:.2f}',
-                    'Avg. Growth (%)': '{:+.2f}%'
-                }),
-                hide_index=True,
-                use_container_width=True
-            )
+            with st.expander("📊 View Top 10 Parent Categories Table"):
+                st.dataframe(
+                    top_10_parent_topics.rename(columns={
+                        'parent_topic': 'Parent Topic',
+                        'total_volume': 'Total Volume',
+                        'average_kd': 'Avg. KD',
+                        'average_cpc': 'Avg. CPC',
+                        'weighted_growth_pct': 'Avg. Growth (%)'
+                    }).style.format({
+                        'Total Volume': '{:,.0f}',
+                        'Avg. KD': '{:.2f}',
+                        'Avg. CPC': '${:.2f}',
+                        'Avg. Growth (%)': '{:+.2f}%'
+                    }),
+                    hide_index=True,
+                    use_container_width=True
+                )
         else:
             st.warning("No parent topics found with sufficient data for this chart. Ensure 'parent_topic' and 'kd' columns are present and data is not empty.")
     else:
