@@ -206,6 +206,7 @@ with st.sidebar:
                             modifiers.append("Non-local")
 
                         if modifiers:
+                            # Construct the full intent string, e.g., "Transactional (Branded, Local)"
                             return f"{primary_intent} ({', '.join(modifiers)})"
                         return primary_intent
 
@@ -541,6 +542,14 @@ if df_keywords is not None:
 
             st.plotly_chart(fig_intent_combo, use_container_width=True)
             st.info("This chart breaks down keywords by their primary search intent, showing both the count of keywords and their aggregated search volume. This helps prioritize intents with higher market potential.")
+
+            # Add example keywords for each intent
+            st.markdown("##### Example Keywords by Intent:")
+            for intent_group in intent_data['search_intent']:
+                # Find an example keyword for this intent from df_sam
+                example_keyword = df_sam[df_sam['search_intent'] == intent_group]['keyword'].iloc[0] if not df_sam[df_sam['search_intent'] == intent_group].empty else "N/A"
+                st.markdown(f"- **{intent_group}**: `{example_keyword}`")
+
         else:
             st.warning("No search intent data found in SAM for this chart. Adjust your filters in the sidebar.")
     else:
