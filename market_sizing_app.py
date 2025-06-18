@@ -700,17 +700,24 @@ if df_keywords is not None:
         else:
             st.info("Most keywords in your dataset show a 'Stable' trend or trend data is limited for categorical breakdown.")
 
-        # Top Trending Up Keywords
-        trending_up_keywords = df_keywords[df_keywords['trend'] == 'Trending Up'].sort_values(by=['growth_pct', 'volume'], ascending=[False, False])
-        if not trending_up_keywords.empty:
-            with st.expander("📈 Top Trending Up Keywords"):
-                st.dataframe(trending_up_keywords[['keyword', 'volume', 'kd', 'growth_pct']].head(10).rename(columns={'growth_pct': 'Growth (%)'}))
+        # Side-by-side expanders for top trending keywords
+        col_up, col_down = st.columns(2)
+
+        with col_up:
+            trending_up_keywords = df_keywords[df_keywords['trend'] == 'Trending Up'].sort_values(by=['growth_pct', 'volume'], ascending=[False, False])
+            if not trending_up_keywords.empty:
+                with st.expander("📈 Top Trending Up Keywords"):
+                    st.dataframe(trending_up_keywords[['keyword', 'volume', 'kd', 'growth_pct']].head(10).rename(columns={'growth_pct': 'Growth (%)'}), use_container_width=True)
+            else:
+                st.info("No keywords identified as 'Trending Up'.")
         
-        # Top Trending Down Keywords
-        trending_down_keywords = df_keywords[df_keywords['trend'] == 'Trending Down'].sort_values(by=['growth_pct', 'volume'], ascending=[True, False])
-        if not trending_down_keywords.empty:
-            with st.expander("📉 Top Trending Down Keywords"):
-                st.dataframe(trending_down_keywords[['keyword', 'volume', 'kd', 'growth_pct']].head(10).rename(columns={'growth_pct': 'Growth (%)'}))
+        with col_down:
+            trending_down_keywords = df_keywords[df_keywords['trend'] == 'Trending Down'].sort_values(by=['growth_pct', 'volume'], ascending=[True, False])
+            if not trending_down_keywords.empty:
+                with st.expander("📉 Top Trending Down Keywords"):
+                    st.dataframe(trending_down_keywords[['keyword', 'volume', 'kd', 'growth_pct']].head(10).rename(columns={'growth_pct': 'Growth (%)'}), use_container_width=True)
+            else:
+                st.info("No keywords identified as 'Trending Down'.")
 
     else:
         st.info("No Ahrefs `Growth (3mo)`, `Growth (6mo)`, or `Growth (12mo)` columns found in your uploaded data. Trend analysis is limited.")
