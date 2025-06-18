@@ -109,7 +109,7 @@ st.info("""
     Please export your keyword data from Ahrefs (e.g., from Keywords Explorer or Site Explorer's Organic Keywords report)
     as a CSV file. Ensure the export includes at least the following columns:
     `Keyword`, `Volume`, `Difficulty`, `SERP Features`, `CPC`.
-    **Highly recommended:** Include the `Intents` column for more accurate search intent classification.
+    **Highly recommended:** Include the `Intents` column for more accurate search intent classification, especially for filtering branded vs. non-branded queries.
     For improved trend analysis, ensure `Growth (3mo)`, `Growth (6mo)`, or `Growth (12mo)` columns are also included.
 """)
 
@@ -174,25 +174,42 @@ with st.sidebar:
                 df_keywords['parent_topic'] = df_keywords['parent_topic'].fillna(df_keywords['keyword'])
 
 
-                # --- Search Intent Classification ---
+                # --- Search Intent Classification (Updated to preserve Branded/Non-branded) ---
                 if 'intents' in df_keywords.columns:
                     # st.info("Using Ahrefs 'Intents' column for search intent classification.") # Removed from sidebar
-                    def parse_ahrefs_intent(intent_str):
+                    def parse_ahrefs_intents_with_modifiers(intent_str):
                         if pd.isna(intent_str) or not intent_str:
                             return "Unknown"
-                        intents = [i.strip().lower() for i in intent_str.split(',')]
+                        intents_list = [i.strip() for i in intent_str.split(',')]
                         
-                        # Prioritize core intents
-                        if 'transactional' in intents:
-                            return "Transactional"
-                        if 'commercial' in intents:
-                            return "Commercial Investigation"
-                        if 'informational' in intents:
-                            return "Informational"
-                        if 'navigational' in intents:
-                            return "Navigational"
-                        return "Unknown"
-                    df_keywords['search_intent'] = df_keywords['intents'].apply(parse_ahrefs_intent)
+                        primary_intent = "Unknown"
+                        modifiers = []
+
+                        # Define a precedence for primary intents
+                        if 'Transactional' in intents_list:
+                            primary_intent = "Transactional"
+                        elif 'Commercial' in intents_list:
+                            primary_intent = "Commercial Investigation"
+                        elif 'Informational' in intents_list:
+                            primary_intent = "Informational"
+                        elif 'Navigational' in intents_list:
+                            primary_intent = "Navigational"
+                        
+                        # Collect modifiers
+                        if 'Branded' in intents_list:
+                            modifiers.append("Branded")
+                        if 'Non-branded' in intents_list:
+                            modifiers.append("Non-branded")
+                        if 'Local' in intents_list: # Assuming 'Local' is also a modifier
+                            modifiers.append("Local")
+                        if 'Non-local' in intents_list:
+                            modifiers.append("Non-local")
+
+                        if modifiers:
+                            return f"{primary_intent} ({', '.join(modifiers)})"
+                        return primary_intent
+
+                    df_keywords['search_intent'] = df_keywords['intents'].apply(parse_ahrefs_intents_with_modifiers)
                 else:
                     st.warning("Ahrefs 'Intents' column not found. Falling back to custom keyword-based intent classification (may be less accurate).")
                     df_keywords['search_intent'] = df_keywords['keyword'].apply(classify_search_intent_custom)
@@ -238,11 +255,14 @@ with st.sidebar:
         # Fixed max_kd to 100 or a sensible default for filtering SAM, as it's no longer a user input
         fixed_max_kd_for_sam = 100 
         
+        # Updated multiselect for selected intents to reflect new granular options
+        all_ahrefs_intents = sorted(df_keywords['search_intent'].unique().tolist())
         selected_intents = st.multiselect(
             "Include Search Intents",
-            options=df_keywords['search_intent'].unique(),
-            default=df_keywords['search_intent'].unique()
+            options=all_ahrefs_intents,
+            default=[intent for intent in all_ahrefs_intents if 'Branded' not in intent] # Default to exclude branded
         )
+
 
         selected_keyword_types = st.multiselect(
             "Include Keyword Types",
