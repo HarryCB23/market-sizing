@@ -573,7 +573,10 @@ if df_keywords is not None:
     st.subheader("SERP Features Present (SAM)")
     if not df_sam.empty:
         # Calculate percentage of keywords with AI Overviews
-        ai_overview_keywords_count = df_sam['serp_features'].apply(lambda x: 'ai overviews' in x.lower() if isinstance(x, str) else False).sum()
+        # Updated to check for 'AI overview' (singular, case-insensitive)
+        ai_overview_keywords_count = df_sam['serp_features'].apply(
+            lambda x: 'ai overview' in x.lower() if isinstance(x, str) else False
+        ).sum()
         total_sam_keywords = len(df_sam)
         ai_overview_percentage = (ai_overview_keywords_count / total_sam_keywords) * 100 if total_sam_keywords > 0 else 0
 
