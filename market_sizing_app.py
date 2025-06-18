@@ -421,11 +421,11 @@ if df_keywords is not None:
                 box-shadow: 2px 2px 8px rgba(0,0,0,0.05);
                 background-color: #f9f9f9;
             ">
-                <h4 style="color:#262730; margin-bottom: 0px;">Serviceable Obtainable Market (SOM) ({som_percentage}%)</h4>
+                <h4 style="color:#262730; margin-bottom: 0px;">Serviceable Obtainable Market (SOM)</h4>
                 <p style="font-size: 1.3em; font-weight: bold; color:{number_color}; margin: 5px 0;">{int(obtainable_market_volume_som):,} Searches</p>
                 <p style="font-size: 0.8em; color:#555; margin-top: 8px;">
                     Est. Clicks: {int(obtainable_market_clicks_som):,}<br>
-                    Pot. Revenue: ${obtainable_market_revenue_som:,.2f}
+                    Pot. Revenue: ${obtainable_market_revenue_som:,.2f} ({som_percentage}%)
                 </p>
             </div>
             """,
