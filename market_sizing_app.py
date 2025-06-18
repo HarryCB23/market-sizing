@@ -234,7 +234,9 @@ with st.sidebar:
         st.write("Filter keywords to define your specific Serviceable Available Market (SAM).")
 
         min_volume = st.slider("Minimum Monthly Search Volume", min_value=0, max_value=int(df_keywords['volume'].max()), value=0, step=10)
-        max_kd = st.slider("Maximum Keyword Difficulty (KD)", min_value=0, max_value=100, value=100, step=5)
+        # Removed max_kd slider: max_kd = st.slider("Maximum Keyword Difficulty (KD)", min_value=0, max_value=100, value=100, step=5)
+        # Fixed max_kd to 100 or a sensible default for filtering SAM, as it's no longer a user input
+        fixed_max_kd_for_sam = 100 
         
         selected_intents = st.multiselect(
             "Include Search Intents",
@@ -271,7 +273,7 @@ with st.sidebar:
         # If no file is uploaded yet, provide dummy values for sidebar controls and a message
         st.warning("Upload your Ahrefs data via the file uploader in the sidebar to enable market definition filters and parameters.")
         min_volume = 0
-        max_kd = 100
+        fixed_max_kd_for_sam = 100 # Also provide dummy value here
         selected_intents = []
         selected_keyword_types = []
         average_rpm = 20.0
@@ -280,10 +282,10 @@ with st.sidebar:
 
 # The main content of the app should only render if df_keywords is not None
 if df_keywords is not None:
-    # Apply filters to create SAM dataset
+    # Apply filters to create SAM dataset - Use fixed_max_kd_for_sam
     df_sam = df_keywords[
         (df_keywords['volume'] >= min_volume) &
-        (df_keywords['kd'] <= max_kd) &
+        (df_keywords['kd'] <= fixed_max_kd_for_sam) & # Use fixed_max_kd_for_sam here
         (df_keywords['search_intent'].isin(selected_intents)) &
         (df_keywords['keyword_type'].isin(selected_keyword_types))
     ].copy() # Use .copy() to avoid SettingWithCopyWarning
@@ -575,7 +577,7 @@ if df_keywords is not None:
         # Calculate percentage of keywords with AI Overviews
         # Updated to check for 'AI overview' (singular, case-insensitive)
         ai_overview_keywords_count = df_sam['serp_features'].apply(
-            lambda x: 'ai overview' in x.lower() if isinstance(x, str) else False
+            lambda x: bool(re.search(r'\b(?:ai overview|ai overviews)\b', str(x).lower()))
         ).sum()
         total_sam_keywords = len(df_sam)
         ai_overview_percentage = (ai_overview_keywords_count / total_sam_keywords) * 100 if total_sam_keywords > 0 else 0
