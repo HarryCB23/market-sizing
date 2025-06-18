@@ -199,28 +199,35 @@ with st.sidebar:
 
 
                 # --- Trend Analysis (using Ahrefs Growth columns) ---
-                # Prioritize Growth (12mo), then (6mo), then (3mo)
-                growth_col_found = None
-                for col_suffix in ['12mo', '6mo', '3mo']:
-                    # Handle variations in column names like 'global_growth_(12mo)' or just 'growth_(12mo)'
-                    potential_col_names = [f'growth_({col_suffix})', f'global_growth_({col_suffix})']
-                    for pc_name in potential_col_names:
-                        if pc_name in df_keywords.columns:
-                            growth_col_found = pc_name
-                            break
-                    if growth_col_found:
-                        break
+                # This block will now only define the 'growth_pct' and 'trend' columns
+                # The display logic is moved to the main content area for the new cards.
+                growth_col_map = {
+                    '3mo': None,
+                    '6mo': None,
+                    '12mo': None
+                }
                 
-                if growth_col_found:
-                    # st.info(f"Using `{growth_col_found}` column for trend analysis.") # Removed from sidebar
-                    df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_found], errors='coerce').fillna(0)
+                # Identify actual growth columns found
+                for col_suffix in ['3mo', '6mo', '12mo']:
+                    for pc_name in [f'growth_({col_suffix})', f'global_growth_({col_suffix})']:
+                        if pc_name in df_keywords.columns:
+                            growth_col_map[col_suffix] = pc_name
+                            break
+                
+                df_keywords['growth_pct'] = 0 # Default value
+                df_keywords['trend'] = 'N/A' # Default value
 
-                    df_keywords['trend'] = 'Stable'
-                    df_keywords.loc[df_keywords['growth_pct'] > 0, 'trend'] = 'Trending Up'
-                    df_keywords.loc[df_keywords['growth_pct'] < 0, 'trend'] = 'Trending Down'
-                else:
-                    st.warning("No Ahrefs `Growth (3mo)`, `Growth (6mo)`, or `Growth (12mo)` columns found. Trend analysis will be limited.")
-                    df_keywords['trend'] = 'N/A'
+                # Apply growth_pct for a unified 'trend' column (prioritizing 12mo > 6mo > 3mo for main trend categorization)
+                if growth_col_map['12mo']:
+                    df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_map['12mo']], errors='coerce').fillna(0)
+                elif growth_col_map['6mo']:
+                    df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_map['6mo']], errors='coerce').fillna(0)
+                elif growth_col_map['3mo']:
+                    df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_map['3mo']], errors='coerce').fillna(0)
+
+                # Assign categorical trend based on the best available growth_pct
+                df_keywords.loc[df_keywords['growth_pct'] > 5, 'trend'] = 'Trending Up'
+                df_keywords.loc[df_keywords['growth_pct'] < -5, 'trend'] = 'Trending Down'
     
     # Only show filters and monetization if df_keywords is loaded
     if df_keywords is not None:
@@ -307,25 +314,26 @@ if df_keywords is not None:
     # New, cleaner layout for estimated market potential
     col_tam, col_sam, col_som = st.columns(3)
 
-    # Define a consistent blue color
-    blue_color = "#1f77b4"
+    # Define a consistent blue color for searches, and custom colors for metric cards
+    number_color = "#1f77b4" # Blue for numbers
 
     with col_tam:
         st.markdown(
             f"""
             <div style="
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                padding: 15px;
-                text-align: center;
-                min-height: 150px; /* Use min-height instead of fixed height */
-                display: flex;
-                flex-direction: column;
+                border: 1px solid #e0e0e0; 
+                border-radius: 8px; 
+                padding: 15px; 
+                text-align: center; 
+                min-height: 150px; 
+                display: flex; 
+                flex-direction: column; 
                 justify-content: space-between;
-                box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+                box-shadow: 2px 2px 8px rgba(0,0,0,0.05);
+                background-color: #f9f9f9;
             ">
                 <h4 style="color:#262730; margin-bottom: 0px;">Total Addressable Market (TAM)</h4>
-                <p style="font-size: 1.3em; font-weight: bold; color:{blue_color}; margin: 5px 0;">{total_market_volume_tam:,} Searches</p>
+                <p style="font-size: 1.3em; font-weight: bold; color:{number_color}; margin: 5px 0;">{total_market_volume_tam:,} Searches</p>
                 <p style="font-size: 0.8em; color:#555; margin-top: 8px;">
                     Est. Clicks: {int(total_market_clicks_tam):,}<br>
                     Pot. Revenue: ${total_market_revenue_tam:,.2f}
@@ -339,18 +347,19 @@ if df_keywords is not None:
         st.markdown(
             f"""
             <div style="
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                padding: 15px;
-                text-align: center;
-                min-height: 150px; /* Use min-height instead of fixed height */
-                display: flex;
-                flex-direction: column;
+                border: 1px solid #e0e0e0; 
+                border-radius: 8px; 
+                padding: 15px; 
+                text-align: center; 
+                min-height: 150px; 
+                display: flex; 
+                flex-direction: column; 
                 justify-content: space-between;
-                box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+                box-shadow: 2px 2px 8px rgba(0,0,0,0.05);
+                background-color: #f9f9f9;
             ">
                 <h4 style="color:#262730; margin-bottom: 0px;">Serviceable Available Market (SAM)</h4>
-                <p style="font-size: 1.3em; font-weight: bold; color:{blue_color}; margin: 5px 0;">{serviceable_market_volume_sam:,} Searches</p>
+                <p style="font-size: 1.3em; font-weight: bold; color:{number_color}; margin: 5px 0;">{serviceable_market_volume_sam:,} Searches</p>
                 <p style="font-size: 0.8em; color:#555; margin-top: 8px;">
                     Est. Clicks: {int(serviceable_market_clicks_sam):,}<br>
                     Pot. Revenue: ${serviceable_market_revenue_sam:,.2f}
@@ -364,18 +373,19 @@ if df_keywords is not None:
         st.markdown(
             f"""
             <div style="
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                padding: 15px;
-                text-align: center;
-                min-height: 150px; /* Use min-height instead of fixed height */
-                display: flex;
-                flex-direction: column;
+                border: 1px solid #e0e0e0; 
+                border-radius: 8px; 
+                padding: 15px; 
+                text-align: center; 
+                min-height: 150px; 
+                display: flex; 
+                flex-direction: column; 
                 justify-content: space-between;
-                box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+                box-shadow: 2px 2px 8px rgba(0,0,0,0.05);
+                background-color: #f9f9f9;
             ">
                 <h4 style="color:#262730; margin-bottom: 0px;">Serviceable Obtainable Market (SOM) ({som_percentage}%)</h4>
-                <p style="font-size: 1.3em; font-weight: bold; color:{blue_color}; margin: 5px 0;">{int(obtainable_market_volume_som):,} Searches</p>
+                <p style="font-size: 1.3em; font-weight: bold; color:{number_color}; margin: 5px 0;">{int(obtainable_market_volume_som):,} Searches</p>
                 <p style="font-size: 0.8em; color:#555; margin-top: 8px;">
                     Est. Clicks: {int(obtainable_market_clicks_som):,}<br>
                     Pot. Revenue: ${obtainable_market_revenue_som:,.2f}
@@ -580,16 +590,98 @@ if df_keywords is not None:
     else:
         st.warning("No keywords in SAM for SERP features breakdown. Adjust your filters in the sidebar.")
 
-    # Topic Trending Up or Down
-    if 'trend' in df_keywords.columns and df_keywords['trend'].nunique() > 1: # Check if trend analysis was performed and there's variation
-        st.subheader("Topic Trend (Overall Data)")
-        trend_counts = df_keywords['trend'].value_counts().reset_index()
-        trend_counts.columns = ['Trend', 'Count']
-        fig_trend = px.bar(trend_counts, x='Trend', y='Count', title='Keyword Trend Distribution')
-        st.plotly_chart(fig_trend, use_container_width=True)
-        st.info("Trends are calculated based on Ahrefs 'Growth (Xmo)' columns from your export.")
+    # Topic Trending Up or Down (New enhanced section)
+    st.subheader("Topic Trend (Overall Data)")
+    
+    # Define the consistent blue color for numbers
+    number_color = "#1f77b4"
+
+    trend_cols_display_map = {
+        '3mo': None,
+        '6mo': None,
+        '12mo': None
+    }
+    
+    # Identify actual growth columns found for display purposes
+    growth_col_map_internal = {
+        '3mo': None,
+        '6mo': None,
+        '12mo': None
+    }
+    for col_suffix in ['3mo', '6mo', '12mo']:
+        for pc_name in [f'growth_({col_suffix})', f'global_growth_({col_suffix})']:
+            if pc_name in df_keywords.columns:
+                growth_col_map_internal[col_suffix] = pc_name
+                
+    col_trend_3mo, col_trend_6mo, col_trend_12mo = st.columns(3)
+
+    # Function to display a single trend metric card
+    def display_trend_card(col_obj, period_label, growth_col_name, df_data, num_color):
+        if growth_col_name and not df_data.empty:
+            overall_growth_sum_numerator = df_data[growth_col_name] * df_data['volume']
+            overall_growth_sum_denominator = df_data['volume']
+            
+            if overall_growth_sum_denominator.sum() > 0:
+                overall_growth_pct = overall_growth_sum_numerator.sum() / overall_growth_sum_denominator.sum()
+            else:
+                overall_growth_pct = 0
+
+            trend_indicator_color = "green" if overall_growth_pct > 0 else "red" if overall_growth_pct < 0 else "gray"
+
+            col_obj.markdown(
+                f"""
+                <div style="
+                    border: 1px solid #e0e0e0;
+                    border-radius: 8px;
+                    padding: 15px;
+                    text-align: center;
+                    min-height: 120px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    box-shadow: 2px 2px 8px rgba(0,0,0,0.05);
+                    background-color: #f9f9f9;
+                ">
+                    <p style="font-size: 1.1em; margin-bottom: 5px;">Overall {period_label} Growth</p>
+                    <p style="font-size: 1.8em; font-weight: bold; color:{trend_indicator_color}; margin: 0;">
+                        {overall_growth_pct:+.2f}%
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            col_obj.info(f"'{period_label}' data not found.")
+
+    display_trend_card(col_trend_3mo, "3-Month", growth_col_map_internal['3mo'], df_keywords, number_color)
+    display_trend_card(col_trend_6mo, "6-Month", growth_col_map_internal['6mo'], df_keywords, number_color)
+    display_trend_card(col_trend_12mo, "12-Month", growth_col_map_internal['12mo'], df_keywords, number_color)
+
+    if any(growth_col_map_internal.values()): # Only show distribution if at least one growth column was found
+        # Distribution of trend categories (still relevant for individual keyword distribution)
+        if df_keywords['trend'].nunique() > 1:
+            trend_counts = df_keywords['trend'].value_counts().reset_index()
+            trend_counts.columns = ['Trend', 'Count']
+            fig_trend = px.bar(trend_counts, x='Trend', y='Count', title='Keyword Trend Distribution (Based on Primary Growth Column)')
+            st.plotly_chart(fig_trend, use_container_width=True)
+            st.info("Trends (Trending Up/Down/Stable) are categorized based on the primary Ahrefs 'Growth (Xmo)' column found (>5% increase/decrease thresholds).")
+        else:
+            st.info("Most keywords in your dataset show a 'Stable' trend or trend data is limited for categorical breakdown.")
+
+        # Top Trending Up Keywords
+        trending_up_keywords = df_keywords[df_keywords['trend'] == 'Trending Up'].sort_values(by=['growth_pct', 'volume'], ascending=[False, False])
+        if not trending_up_keywords.empty:
+            with st.expander("📈 Top Trending Up Keywords"):
+                st.dataframe(trending_up_keywords[['keyword', 'volume', 'kd', 'growth_pct']].head(10).rename(columns={'growth_pct': 'Growth (%)'}))
+        
+        # Top Trending Down Keywords
+        trending_down_keywords = df_keywords[df_keywords['trend'] == 'Trending Down'].sort_values(by=['growth_pct', 'volume'], ascending=[True, False])
+        if not trending_down_keywords.empty:
+            with st.expander("📉 Top Trending Down Keywords"):
+                st.dataframe(trending_down_keywords[['keyword', 'volume', 'kd', 'growth_pct']].head(10).rename(columns={'growth_pct': 'Growth (%)'}))
+
     else:
-        st.info("Ahrefs Growth columns (e.g., 'Growth (12mo)') not found or show no significant variation. Trend analysis limited.")
+        st.info("No Ahrefs `Growth (3mo)`, `Growth (6mo)`, or `Growth (12mo)` columns found in your uploaded data. Trend analysis is limited.")
 
     st.divider()
 
