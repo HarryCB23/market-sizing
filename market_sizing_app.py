@@ -261,6 +261,18 @@ with st.sidebar:
         )
         st.info("RPM represents the estimated revenue you generate per 1000 organic clicks.")
 
+        # New: CTR Slider
+        average_ctr_percentage = st.slider(
+            "Average Organic CTR (%)",
+            min_value=1.0,
+            max_value=100.0,
+            value=35.0, # Default CTR
+            step=0.5,
+            format="%.1f"
+        )
+        st.info("This average CTR will be applied to search volumes to estimate clicks.")
+
+
         som_percentage = st.slider(
             "Serviceable Obtainable Market (SOM) Percentage of SAM (%)",
             min_value=0,
@@ -277,11 +289,15 @@ with st.sidebar:
         selected_intents = []
         selected_keyword_types = []
         average_rpm = 20.0
+        average_ctr_percentage = 35.0 # Dummy value for CTR
         som_percentage = 10
 
 
 # The main content of the app should only render if df_keywords is not None
 if df_keywords is not None:
+    # Convert CTR percentage to a decimal for calculations
+    average_ctr_decimal = average_ctr_percentage / 100.0
+
     # Apply filters to create SAM dataset - Use fixed_max_kd_for_sam
     df_sam = df_keywords[
         (df_keywords['volume'] >= min_volume) &
@@ -296,17 +312,17 @@ if df_keywords is not None:
     # --- 3. Market Sizing Calculations ---
     st.header("2. Market Sizing Overview") # Re-numbered header
 
-    # Calculate TAM, SAM, SOM
+    # Calculate TAM, SAM, SOM using the dynamic CTR
     total_market_volume_tam = df_keywords['volume'].sum()
-    total_market_clicks_tam = total_market_volume_tam * 0.35 # Assuming an average 35% organic CTR for top results
+    total_market_clicks_tam = total_market_volume_tam * average_ctr_decimal
     total_market_revenue_tam = (total_market_clicks_tam / 1000) * average_rpm
 
     serviceable_market_volume_sam = df_sam['volume'].sum()
-    serviceable_market_clicks_sam = serviceable_market_volume_sam * 0.35 # Assuming an average 35% organic CTR for top results
+    serviceable_market_clicks_sam = serviceable_market_volume_sam * average_ctr_decimal
     serviceable_market_revenue_sam = (serviceable_market_clicks_sam / 1000) * average_rpm
 
     obtainable_market_volume_som = serviceable_market_volume_sam * (som_percentage / 100)
-    obtainable_market_clicks_som = obtainable_market_volume_som * 0.35 # Assuming an average 35% organic CTR
+    obtainable_market_clicks_som = obtainable_market_volume_som * average_ctr_decimal
     obtainable_market_revenue_som = (obtainable_market_clicks_som / 1000) * average_rpm
 
 
@@ -605,17 +621,21 @@ if df_keywords is not None:
             st.plotly_chart(fig_combo, use_container_width=True)
             st.info("This chart displays the top 10 parent topics by total search volume, with their average Keyword Difficulty (KD) overlaid. Use the metrics to identify high-volume, potentially lower-difficulty opportunities.")
 
-            # New: Display table for Top 10 Parent Categories as collapsible
+            # Display table for Top 10 Parent Categories as collapsible
             st.subheader("Top 10 Parent Categories Details")
             with st.expander("📊 View Top 10 Parent Categories Table"):
+                # Ensure the columns for display are correct and formatted
+                df_display = top_10_parent_topics[['parent_topic', 'total_volume', 'average_kd', 'average_cpc', 'weighted_growth_pct']].copy()
+                df_display.rename(columns={
+                    'parent_topic': 'Parent Topic',
+                    'total_volume': 'Total Volume',
+                    'average_kd': 'Avg. KD',
+                    'average_cpc': 'Avg. CPC',
+                    'weighted_growth_pct': 'Avg. Growth (%)'
+                }, inplace=True)
+
                 st.dataframe(
-                    top_10_parent_topics.rename(columns={
-                        'parent_topic': 'Parent Topic',
-                        'total_volume': 'Total Volume',
-                        'average_kd': 'Avg. KD',
-                        'average_cpc': 'Avg. CPC',
-                        'weighted_growth_pct': 'Avg. Growth (%)'
-                    }).style.format({
+                    df_display.style.format({
                         'Total Volume': '{:,.0f}',
                         'Avg. KD': '{:.2f}',
                         'Avg. CPC': '${:.2f}',
@@ -702,6 +722,7 @@ if df_keywords is not None:
         for pc_name in [f'growth_({col_suffix})', f'global_growth_({col_suffix})']:
             if pc_name in df_keywords.columns:
                 growth_col_map_internal[col_suffix] = pc_name
+                break
                 
     col_trend_3mo, col_trend_6mo, col_trend_12mo = st.columns(3)
 
