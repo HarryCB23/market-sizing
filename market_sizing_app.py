@@ -97,6 +97,12 @@ st.divider()
 
 # Initialize df_keywords outside of the if block so it's always defined
 df_keywords = None
+# Initialize growth_col_map_internal at a higher scope
+growth_col_map_internal = {
+    '3mo': None,
+    '6mo': None,
+    '12mo': None
+}
 
 # --- 1. Ahrefs Data Upload (Instructional text in main body) ---
 st.header("1. Upload Ahrefs Keyword Data")
@@ -199,33 +205,24 @@ with st.sidebar:
 
 
                 # --- Trend Analysis (using Ahrefs Growth columns) ---
-                # This block will now only define the 'growth_pct' and 'trend' columns
-                # The display logic is moved to the main content area for the new cards.
-                growth_col_map = {
-                    '3mo': None,
-                    '6mo': None,
-                    '12mo': None
-                }
-                
-                # Identify actual growth columns found
+                # Identify actual growth columns found for display purposes
+                # This block now correctly populates growth_col_map_internal
                 for col_suffix in ['3mo', '6mo', '12mo']:
                     for pc_name in [f'growth_({col_suffix})', f'global_growth_({col_suffix})']:
                         if pc_name in df_keywords.columns:
-                            growth_col_map[col_suffix] = pc_name
+                            growth_col_map_internal[col_suffix] = pc_name
                             break
-                    if growth_col_found:
-                        break
                 
                 df_keywords['growth_pct'] = 0 # Default value
                 df_keywords['trend'] = 'N/A' # Default value
 
                 # Apply growth_pct for a unified 'trend' column (prioritizing 12mo > 6mo > 3mo for main trend categorization)
-                if growth_col_map['12mo']:
-                    df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_map['12mo']], errors='coerce').fillna(0)
-                elif growth_col_map['6mo']:
-                    df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_map['6mo']], errors='coerce').fillna(0)
-                elif growth_col_map['3mo']:
-                    df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_map['3mo']], errors='coerce').fillna(0)
+                if growth_col_map_internal['12mo']: # Use internal map here
+                    df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_map_internal['12mo']], errors='coerce').fillna(0)
+                elif growth_col_map_internal['6mo']: # Use internal map here
+                    df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_map_internal['6mo']], errors='coerce').fillna(0)
+                elif growth_col_map_internal['3mo']: # Use internal map here
+                    df_keywords['growth_pct'] = pd.to_numeric(df_keywords[growth_col_map_internal['3mo']], errors='coerce').fillna(0)
 
                 # Assign categorical trend based on the best available growth_pct
                 df_keywords.loc[df_keywords['growth_pct'] > 5, 'trend'] = 'Trending Up'
@@ -631,12 +628,6 @@ if df_keywords is not None:
     # Define the consistent blue color for numbers
     number_color = "#1f77b4"
 
-    trend_cols_display_map = {
-        '3mo': None,
-        '6mo': None,
-        '12mo': None
-    }
-    
     # Identify actual growth columns found for display purposes
     growth_col_map_internal = {
         '3mo': None,
@@ -653,6 +644,7 @@ if df_keywords is not None:
     # Function to display a single trend metric card
     def display_trend_card(col_obj, period_label, growth_col_name, df_data, num_color):
         if growth_col_name and not df_data.empty:
+            # Calculate weighted average growth using the identified growth column
             overall_growth_sum_numerator = df_data[growth_col_name] * df_data['volume']
             overall_growth_sum_denominator = df_data['volume']
             
