@@ -213,6 +213,8 @@ with st.sidebar:
                         if pc_name in df_keywords.columns:
                             growth_col_map[col_suffix] = pc_name
                             break
+                    if growth_col_found:
+                        break
                 
                 df_keywords['growth_pct'] = 0 # Default value
                 df_keywords['trend'] = 'N/A' # Default value
@@ -279,7 +281,7 @@ with st.sidebar:
         som_percentage = 10
 
 
-# The main content of the app should only render if df_keywords is available
+# The main content of the app should only render if df_keywords is not None
 if df_keywords is not None:
     # Apply filters to create SAM dataset
     df_sam = df_keywords[
@@ -573,6 +575,39 @@ if df_keywords is not None:
     # SERP Features Breakdown
     st.subheader("SERP Features Present (SAM)")
     if not df_sam.empty:
+        # Calculate percentage of keywords with AI Overviews
+        ai_overview_keywords_count = df_sam['serp_features'].apply(lambda x: 'ai overviews' in x.lower() if isinstance(x, str) else False).sum()
+        total_sam_keywords = len(df_sam)
+        ai_overview_percentage = (ai_overview_keywords_count / total_sam_keywords) * 100 if total_sam_keywords > 0 else 0
+
+        # Display AI Overviews metric card
+        st.markdown(
+            f"""
+            <div style="
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                padding: 15px;
+                text-align: center;
+                min-height: 120px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                box-shadow: 2px 2px 8px rgba(0,0,0,0.05);
+                background-color: #f9f9f9;
+            ">
+                <p style="font-size: 1.1em; margin-bottom: 5px;">Keywords with AI Overviews</p>
+                <p style="font-size: 1.8em; font-weight: bold; color:{number_color}; margin: 0;">
+                    {ai_overview_percentage:.2f}%
+                </p>
+                <p style="font-size: 0.8em; color:#555; margin-top: 5px;">
+                    ({ai_overview_keywords_count} of {total_sam_keywords} keywords)
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        st.markdown("---") # Separator for the card
+
         all_features = {}
         for features_str in df_sam['serp_features']:
             if features_str: # Ensure not empty string
