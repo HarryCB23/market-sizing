@@ -90,7 +90,6 @@ st.title("📊 SEO Market Sizing Tool")
 
 st.markdown("""
 Welcome to your SEO Market Sizing Tool! This app helps you analyze your Ahrefs keyword data to understand the Total Addressable Market (TAM), Serviceable Available Market (SAM), and Serviceable Obtainable Market (SOM) for your niche.
-You can also assess competitive landscape, search intent, trends, and monetization potential.
 """)
 
 st.divider()
@@ -109,7 +108,7 @@ st.header("1. Upload Ahrefs Keyword Data")
 st.info("""
     Please export your keyword data from Ahrefs (e.g., from Keywords Explorer or Site Explorer's Organic Keywords report)
     as a CSV file. Ensure the export includes at least the following columns:
-    `Keyword`, `Volume`, `Difficulty`, `SERP Features`.
+    `Keyword`, `Volume`, `Difficulty`, `SERP Features`, `CPC`.
     **Highly recommended:** Include the `Intents` column for more accurate search intent classification.
     For improved trend analysis, ensure `Growth (3mo)`, `Growth (6mo)`, or `Growth (12mo)` columns are also included.
 """)
@@ -153,12 +152,12 @@ with st.sidebar:
             if 'parent_keyword' in df_keywords.columns and 'parent_topic' not in df_keywords.columns:
                 df_keywords.rename(columns={'parent_keyword': 'parent_topic'}, inplace=True)
 
-            # Check for essential columns (now including 'kd' after potential rename)
-            required_cols = ['keyword', 'volume', 'kd', 'serp_features'] 
+            # Check for essential columns (now including 'kd' and 'cpc' after potential rename)
+            required_cols = ['keyword', 'volume', 'kd', 'serp_features', 'cpc'] 
             missing_cols = [col for col in required_cols if col not in df_keywords.columns]
 
             if missing_cols:
-                st.error(f"Missing required columns in your CSV: {', '.join(missing_cols)}. Please ensure `Keyword`, `Volume`, `Difficulty`, `SERP Features` are present in your Ahrefs export.")
+                st.error(f"Missing required columns in your CSV: {', '.join(missing_cols)}. Please ensure `Keyword`, `Volume`, `Difficulty`, `SERP Features`, and `CPC` are present in your Ahrefs export.")
                 df_keywords = None # Invalidate dataframe if essential columns are missing
             else:
                 # Data Cleaning and Preparation
@@ -166,6 +165,7 @@ with st.sidebar:
                 # st.dataframe(df_keywords.head()) # Removed from sidebar
                 df_keywords['volume'] = pd.to_numeric(df_keywords['volume'], errors='coerce').fillna(0).astype(int)
                 df_keywords['kd'] = pd.to_numeric(df_keywords['kd'], errors='coerce').fillna(0).astype(int)
+                df_keywords['cpc'] = pd.to_numeric(df_keywords['cpc'], errors='coerce').fillna(0.0) # Handle CPC as float, fill NaN with 0
                 df_keywords['serp_features'] = df_keywords['serp_features'].fillna('')
                 # Ensure 'parent_topic' exists; if not, use 'keyword' as a fallback, then handle NaNs
                 if 'parent_topic' not in df_keywords.columns:
@@ -511,17 +511,56 @@ if df_keywords is not None:
         st.warning("No keywords in SAM for breakdown. Adjust your filters in the sidebar.")
 
 
-    # Top Parent Categories by Volume & Average KD
+    # Top Parent Categories by Volume & Average KD (now with a summary box)
     st.subheader("Top Parent Categories by Volume & Average KD")
     if not df_keywords.empty:
-        # Group by parent_topic and calculate total volume and average KD
+        # Group by parent_topic and calculate total volume and average KD, CPC, and weighted growth
         parent_topic_data = df_keywords.groupby('parent_topic').agg(
             total_volume=('volume', 'sum'),
-            average_kd=('kd', 'mean')
+            average_kd=('kd', 'mean'),
+            average_cpc=('cpc', 'mean'),
+            # Calculate weighted average growth for each parent topic
+            weighted_growth_pct=('growth_pct', lambda x: (x * df_keywords.loc[x.index, 'volume']).sum() / df_keywords.loc[x.index, 'volume'].sum() if df_keywords.loc[x.index, 'volume'].sum() > 0 else 0)
         ).reset_index()
 
-        # Sort by total volume and get the top 10 for display
+        # Sort by total volume and get the top 10 for chart display
         top_10_parent_topics = parent_topic_data.sort_values(by='total_volume', ascending=False).head(10)
+        
+        # Get the absolute top parent topic for the summary box
+        absolute_top_parent_topic = parent_topic_data.sort_values(by='total_volume', ascending=False).iloc[0] if not parent_topic_data.empty else None
+
+        if absolute_top_parent_topic is not None:
+            st.markdown(
+                f"""
+                <div style="
+                    border: 1px solid #e0e0e0;
+                    border-radius: 8px;
+                    padding: 15px;
+                    text-align: center;
+                    min-height: 180px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    box-shadow: 2px 2px 8px rgba(0,0,0,0.05);
+                    background-color: #f9f9f9;
+                ">
+                    <h4 style="color:#262730; margin-bottom: 5px;">Absolute Top Parent Category: **{absolute_top_parent_topic['parent_topic']}**</h4>
+                    <p style="font-size: 1.1em; color:{number_color}; margin: 0;">
+                        Total Volume: **{absolute_top_parent_topic['total_volume']:,}** Searches
+                    </p>
+                    <p style="font-size: 0.9em; color:#555; margin-top: 5px;">
+                        Avg. KD: **{absolute_top_parent_topic['average_kd']:.2f}** |
+                        Avg. CPC: **${absolute_top_parent_topic['average_cpc']:.2f}**
+                    </p>
+                    <p style="font-size: 0.9em; color:{'green' if absolute_top_parent_topic['weighted_growth_pct'] > 0 else 'red' if absolute_top_parent_topic['weighted_growth_pct'] < 0 else 'gray'}; margin: 0;">
+                        Avg. Growth (Weighted): **{absolute_top_parent_topic['weighted_growth_pct']:+.2f}%**
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            st.markdown("---")
+
 
         if not top_10_parent_topics.empty:
             # Create combo chart using make_subplots
