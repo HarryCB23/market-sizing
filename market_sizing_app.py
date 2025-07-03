@@ -5,6 +5,289 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import re
 
+# --- Custom CSS ---
+st.markdown("""
+<style>
+/* --- General Layout & Typography --- */
+html, body, [class*="stApp"] {
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif!important;
+    background-color: #f7f9fb;
+}
+h1, h2, h3, h4, h5, h6 {
+    color: #3b5f8f;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin-bottom: 0.5em;
+}
+.stTitle, .stHeader {
+    margin-top: 0.5em;
+    margin-bottom: 1em;
+}
+p, .stMarkdown, .stText, .stDataFrame, .stAlert {
+    color: #232b32;
+    font-size: 1.05rem;
+}
+.stTabs [role="tablist"] {
+    background: #ffffff;
+    border-radius: 14px 14px 0 0;
+    padding: 0.5em 1.5em 0 1.5em;
+    border-bottom: 1.5px solid #e7ecf3;
+    margin-bottom: 0;
+}
+.stTabs [role="tab"] {
+    color: #3b5f8f;
+    font-weight: 600;
+    font-size: 1.08em;
+    border-radius: 8px 8px 0 0;
+    padding: 0.5em 1.1em;
+    margin-right: 0.3em;
+}
+.stTabs [aria-selected="true"] {
+    background: #e7ecf3;
+    box-shadow: 0 2px 8px 0 #dbe2ea44;
+    border-bottom: 2.5px solid #3b5f8f;
+}
+section.main > div {
+    padding: 2.5vw 2vw 2vw 2vw;
+    max-width: 1200px;
+    margin: auto;
+}
+@media (max-width: 900px) {
+    section.main > div {
+        padding: 1vw 2vw;
+    }
+    .stTabs [role="tab"] { font-size: 0.98em; }
+}
+
+/* --- File Uploader --- */
+.stFileUploader {
+    background: #e7ecf3;
+    border: 2px dashed #bfc8d2;
+    border-radius: 14px;
+    padding: 2em 1.5em;
+    margin-bottom: 1.5em;
+    transition: border 0.2s;
+}
+.stFileUploader:hover {
+    border: 2px solid #3b5f8f;
+}
+.stFileUploader label {
+    font-weight: 600;
+    color: #3b5f8f;
+    font-size: 1.08em;
+}
+.stFileUploader > div > button {
+    background: linear-gradient(90deg, #3b5f8f 0%, #7cb8a4 100%);
+    color: #fff;
+    border-radius: 10px;
+    border: none;
+    font-weight: 600;
+    padding: 0.45em 1.2em;
+}
+.stFileUploader > div > button:hover {
+    background: #7cb8a4;
+}
+
+/* --- Sliders --- */
+.stSlider > div[data-baseweb="slider"] {
+    background: #e7ecf3;
+    border-radius: 10px;
+    padding: 0.7em 1.2em;
+    margin-bottom: 1.2em;
+}
+.stSlider [role="slider"] {
+    background: #7cb8a4;
+    border: 3px solid #3b5f8f;
+    height: 18px;
+    width: 18px;
+    box-shadow: 0 2px 8px #7cb8a42a;
+}
+.stSlider .rc-slider-track {
+    background: #3b5f8f;
+}
+.stSlider .rc-slider-dot {
+    border: 2px solid #7cb8a4;
+}
+.stSlider label, .stSlider span {
+    color: #3b5f8f;
+    font-weight: 500;
+}
+
+/* --- Multi-selects --- */
+.stMultiSelect {
+    background: #e7ecf3!important;
+    border-radius: 10px;
+    padding: 0.5em 0.9em;
+}
+.stMultiSelect label {
+    color: #3b5f8f;
+    font-weight: 500;
+}
+.stMultiSelect [data-baseweb="tag"] {
+    background: #dbe2ea;
+    color: #3b5f8f;
+    border-radius: 8px;
+    padding: 0.2em 0.6em;
+    font-weight: 500;
+    font-size: 0.98em;
+}
+.stMultiSelect [data-baseweb="tag"]:hover, .stMultiSelect [data-baseweb="tag"]:focus {
+    background: #7cb8a4;
+    color: #fff;
+}
+.stMultiSelect input {
+    font-size: 1em;
+    color: #232b32;
+}
+
+/* --- Metric Cards --- */
+.metric-card {
+    background: #e7ecf3;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px 0 #dbe2ea55;
+    padding: 1.3em 1.1em 1.2em 1.1em;
+    margin-bottom: 1.5em;
+    text-align: center;
+    min-height: 142px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.metric-card h4 {
+    font-size: 1.12em;
+    color: #3b5f8f;
+    margin-bottom: 0.2em;
+    font-weight: 700;
+}
+.metric-card .metric-number {
+    color: #3b5f8f;
+    font-size: 2.1em;
+    font-weight: 700;
+    margin: 0.1em 0 0.18em 0;
+}
+.metric-card .metric-label {
+    font-size: 1em;
+    color: #536074;
+    margin: 0.3em 0 0 0;
+}
+
+/* --- Info/Alert Banners --- */
+.stAlert {
+    border-radius: 10px;
+    font-size: 1.02em;
+    padding: 0.6em 1.2em;
+}
+.stAlert-success {
+    background: #e7f7ef;
+    color: #217a4c;
+    border-left: 5px solid #67b99a;
+}
+.stAlert-warning {
+    background: #fff7e6;
+    color: #a3740b;
+    border-left: 5px solid #ffe58f;
+}
+.stAlert-error {
+    background: #fff0f0;
+    color: #b3261e;
+    border-left: 5px solid #ffb1b1;
+}
+
+/* --- DataFrames, Tables --- */
+.stDataFrame, .stTable {
+    background: #fff;
+    border-radius: 12px;
+    padding: 0.6em 1.2em;
+    margin-bottom: 1em;
+    box-shadow: 0 2px 12px 0 #dbe2ea33;
+    font-size: 1em;
+}
+.stDataFrame th, .stDataFrame td {
+    padding: 0.45em 0.7em;
+}
+.stDataFrame th {
+    background: #e7ecf3;
+    color: #3b5f8f;
+    font-weight: 600;
+}
+
+/* --- Plotly Charts --- */
+.stPlotlyChart, .stVegaLiteChart {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px 0 #dbe2ea33;
+    padding: 0.7em 0.7em 0.1em 0.7em;
+    margin-bottom: 2em;
+}
+.stPlotlyChart .legend text {
+    font-size: 1em !important;
+    color: #3b5f8f !important;
+}
+
+/* --- Buttons (General) --- */
+.stButton>button {
+    background: linear-gradient(90deg, #3b5f8f 0%, #7cb8a4 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1.08em;
+    padding: 0.55em 1.6em;
+    margin-top: 0.5em;
+    margin-bottom: 1.2em;
+    box-shadow: 0 1px 4px #bfc8d2aa;
+    transition: background 0.15s, box-shadow 0.2s;
+}
+.stButton>button:hover {
+    background: #7cb8a4;
+    box-shadow: 0 3px 18px #bfc8d2cc;
+}
+.stButton>button:active {
+    background: #3b5f8f;
+}
+
+/* --- Expanders --- */
+.stExpanderHeader {
+    background: #e7ecf3!important;
+    color: #3b5f8f!important;
+    font-weight: 600;
+    border-radius: 10px 10px 0 0;
+}
+.stExpander {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px #dbe2ea22;
+    margin-bottom: 1.5em;
+}
+
+/* --- Misc --- */
+hr, .stDivider {
+    border: none;
+    height: 1.5px;
+    background: #e7ecf3;
+    margin: 1.2em 0;
+}
+::-webkit-scrollbar-thumb {
+    background: #dbe2ea;
+    border-radius: 8px;
+}
+::-webkit-scrollbar {
+    background: #f7f9fb;
+}
+
+/* --- Responsive --- */
+@media (max-width:600px) {
+    .stPlotlyChart, .stDataFrame, .stTable, .metric-card {
+        padding: 0.5em !important;
+        border-radius: 10px !important;
+    }
+    .stTabs [role="tab"] {
+        font-size: 0.88em;
+        padding: 0.3em 0.6em;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
 # --- Configuration ---
 st.set_page_config(layout="wide", page_title="SEO Market Sizing Tool")
 
