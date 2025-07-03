@@ -842,88 +842,90 @@ if df_keywords is not None and params:
 
     # --- TAB 6: Topic Trends (unchanged for brevity, but you can similarly update any charts here) ---
     with tabs[5]:
-    st.header("Topic Trend (Overall Data)")
-    col_trend_3mo, col_trend_6mo, col_trend_12mo = st.columns(3)
-    def display_trend_card(col_obj, period_label, growth_col_name, df_data):
-        if growth_col_name and not df_data.empty:
-            overall_growth_sum_numerator = df_data[growth_col_name] * df_data['volume']
-            overall_growth_sum_denominator = df_data['volume']
-            if overall_growth_sum_denominator.sum() > 0:
-                overall_growth_pct = overall_growth_sum_numerator.sum() / overall_growth_sum_denominator.sum()
+        st.header("Topic Trend (Overall Data)")
+        col_trend_3mo, col_trend_6mo, col_trend_12mo = st.columns(3)
+    
+        def display_trend_card(col_obj, period_label, growth_col_name, df_data):
+            if growth_col_name and not df_data.empty:
+                overall_growth_sum_numerator = df_data[growth_col_name] * df_data['volume']
+                overall_growth_sum_denominator = df_data['volume']
+                if overall_growth_sum_denominator.sum() > 0:
+                    overall_growth_pct = overall_growth_sum_numerator.sum() / overall_growth_sum_denominator.sum()
+                else:
+                    overall_growth_pct = 0
+                trend_indicator_color = "green" if overall_growth_pct > 0 else "red" if overall_growth_pct < 0 else "gray"
+                col_obj.markdown(f"""
+    <div class="metric-card">
+        <h4>Overall {period_label} Growth</h4>
+        <div class="metric-number" style="color:{trend_indicator_color};">
+            {overall_growth_pct:+.2f}%</div>
+    </div>
+    """, unsafe_allow_html=True)
             else:
-                overall_growth_pct = 0
-            trend_indicator_color = "green" if overall_growth_pct > 0 else "red" if overall_growth_pct < 0 else "gray"
-            col_obj.markdown(f"""
-            <div class="metric-card">
-                <h4>Overall {period_label} Growth</h4>
-                <div class="metric-number" style="color:{trend_indicator_color};">
-                    {overall_growth_pct:+.2f}%</div>
-            </div>
-            """, unsafe_allow_html=True)
+                col_obj.info(f"'{period_label}' data not found.")
+    
+        display_trend_card(col_trend_3mo, "3-Month", growth_col_map_internal['3mo'], df_keywords)
+        display_trend_card(col_trend_6mo, "6-Month", growth_col_map_internal['6mo'], df_keywords)
+        display_trend_card(col_trend_12mo, "12-Month", growth_col_map_internal['12mo'], df_keywords)
+    
+        if any(growth_col_map_internal.values()):
+            if df_keywords['trend'].nunique() > 1:
+                trend_counts = df_keywords['trend'].value_counts().reset_index()
+                trend_counts.columns = ['Trend', 'Count']
+                # Modern Plotly bar chart for trend distribution
+                fig_trend = go.Figure()
+                fig_trend.add_trace(go.Bar(
+                    x=trend_counts['Trend'],
+                    y=trend_counts['Count'],
+                    marker=dict(color=PRIMARY),
+                    hovertemplate='<b>%{x}</b><br>Keywords: %{y}<extra></extra>',
+                ))
+                fig_trend.update_layout(
+                    plot_bgcolor=SURFACE,
+                    paper_bgcolor=SURFACE,
+                    font=dict(family="Inter, Segoe UI, Arial, sans-serif", size=15, color=TEXT),
+                    title=dict(
+                        text='Keyword Trend Distribution',
+                        font=dict(size=20, color=PRIMARY, family="Inter, Segoe UI, Arial, sans-serif"),
+                        x=0.5
+                    ),
+                    margin=dict(l=40, r=40, b=60, t=60),
+                    showlegend=False,
+                    hovermode="x unified",
+                )
+                fig_trend.update_xaxes(
+                    title_text="Trend",
+                    showgrid=False,
+                    linecolor=GRID,
+                    tickfont=dict(size=14, color=PRIMARY),
+                )
+                fig_trend.update_yaxes(
+                    title_text="Number of Keywords",
+                    showgrid=True,
+                    gridcolor=GRID,
+                    zeroline=False,
+                    linecolor=GRID,
+                    tickfont=dict(size=13, color=TEXT),
+                )
+                st.plotly_chart(fig_trend, use_container_width=True)
+                st.info("Trends are categorized based on the primary Ahrefs 'Growth (Xmo)' column (>5% increase/decrease).")
+            else:
+                st.info("Most keywords show a 'Stable' trend or trend data is limited.")
+    
+            col_up, col_down = st.columns(2)
+            with col_up:
+                trending_up_keywords = df_keywords[df_keywords['trend'] == 'Trending Up'].sort_values(by=['growth_pct', 'volume'], ascending=[False, False])
+                if not trending_up_keywords.empty:
+                    with st.expander("📈 Top Trending Up Keywords"):
+                        st.dataframe(trending_up_keywords[['keyword', 'volume', 'kd', 'growth_pct']].head(10).rename(columns={'growth_pct': 'Growth (%)'}), use_container_width=True)
+                else:
+                    st.info("No keywords identified as 'Trending Up'.")
+            with col_down:
+                trending_down_keywords = df_keywords[df_keywords['trend'] == 'Trending Down'].sort_values(by=['growth_pct', 'volume'], ascending=[True, False])
+                if not trending_down_keywords.empty:
+                    with st.expander("📉 Top Trending Down Keywords"):
+                        st.dataframe(trending_down_keywords[['keyword', 'volume', 'kd', 'growth_pct']].head(10).rename(columns={'growth_pct': 'Growth (%)'}), use_container_width=True)
+                else:
+                    st.info("No keywords identified as 'Trending Down'.")
         else:
-            col_obj.info(f"'{period_label}' data not found.")
-    display_trend_card(col_trend_3mo, "3-Month", growth_col_map_internal['3mo'], df_keywords)
-    display_trend_card(col_trend_6mo, "6-Month", growth_col_map_internal['6mo'], df_keywords)
-    display_trend_card(col_trend_12mo, "12-Month", growth_col_map_internal['12mo'], df_keywords)
-
-    if any(growth_col_map_internal.values()):
-        if df_keywords['trend'].nunique() > 1:
-            trend_counts = df_keywords['trend'].value_counts().reset_index()
-            trend_counts.columns = ['Trend', 'Count']
-            # Modern Plotly bar chart for trend distribution
-            fig_trend = go.Figure()
-            fig_trend.add_trace(go.Bar(
-                x=trend_counts['Trend'],
-                y=trend_counts['Count'],
-                marker=dict(color=PRIMARY),
-                hovertemplate='<b>%{x}</b><br>Keywords: %{y}<extra></extra>',
-            ))
-            fig_trend.update_layout(
-                plot_bgcolor=SURFACE,
-                paper_bgcolor=SURFACE,
-                font=dict(family="Inter, Segoe UI, Arial, sans-serif", size=15, color=TEXT),
-                title=dict(
-                    text='Keyword Trend Distribution',
-                    font=dict(size=20, color=PRIMARY, family="Inter, Segoe UI, Arial, sans-serif"),
-                    x=0.5
-                ),
-                margin=dict(l=40, r=40, b=60, t=60),
-                showlegend=False,
-                hovermode="x unified",
-            )
-            fig_trend.update_xaxes(
-                title_text="Trend",
-                showgrid=False,
-                linecolor=GRID,
-                tickfont=dict(size=14, color=PRIMARY),
-            )
-            fig_trend.update_yaxes(
-                title_text="Number of Keywords",
-                showgrid=True,
-                gridcolor=GRID,
-                zeroline=False,
-                linecolor=GRID,
-                tickfont=dict(size=13, color=TEXT),
-            )
-            st.plotly_chart(fig_trend, use_container_width=True)
-            st.info("Trends are categorized based on the primary Ahrefs 'Growth (Xmo)' column (>5% increase/decrease).")
-        else:
-            st.info("Most keywords show a 'Stable' trend or trend data is limited.")
-
-        col_up, col_down = st.columns(2)
-        with col_up:
-            trending_up_keywords = df_keywords[df_keywords['trend'] == 'Trending Up'].sort_values(by=['growth_pct', 'volume'], ascending=[False, False])
-            if not trending_up_keywords.empty:
-                with st.expander("📈 Top Trending Up Keywords"):
-                    st.dataframe(trending_up_keywords[['keyword', 'volume', 'kd', 'growth_pct']].head(10).rename(columns={'growth_pct': 'Growth (%)'}), use_container_width=True)
-            else:
-                st.info("No keywords identified as 'Trending Up'.")
-        with col_down:
-            trending_down_keywords = df_keywords[df_keywords['trend'] == 'Trending Down'].sort_values(by=['growth_pct', 'volume'], ascending=[True, False])
-            if not trending_down_keywords.empty:
-                with st.expander("📉 Top Trending Down Keywords"):
-                    st.dataframe(trending_down_keywords[['keyword', 'volume', 'kd', 'growth_pct']].head(10).rename(columns={'growth_pct': 'Growth (%)'}), use_container_width=True)
-            else:
-                st.info("No keywords identified as 'Trending Down'.")
-    else:
-        st.info("No Growth columns found in your uploaded data. Trend analysis is limited.")
+            st.info("No Growth columns found in your uploaded data. Trend analysis is limited.")
