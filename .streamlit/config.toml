@@ -1,10 +1,7 @@
-[server]
-port = 8501
-enableCORS = true
-enableXsrfProtection = true
-
-[browser]
-gatherUsageStats = false # Recommended for privacy if not needed for analytics
-
-[client]
-toolbarMode = "minimal" # Keeps the Streamlit toolbar less intrusive
+[theme]
+base="light"
+primaryColor="#3b5f8f"         # Muted blue
+backgroundColor="#f7f9fb"      # Off-white
+secondaryBackgroundColor="#e7ecf3" # Pale blue-gray for cards/panels
+textColor="#232b32"            # Almost black
+font="sans serif"
