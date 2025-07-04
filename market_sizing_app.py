@@ -356,43 +356,42 @@ tabs = st.tabs([
 
 # --- TAB 1: SETUP (Upload and Filters) ---
 with tabs[0]:
-    # --- HOW TO USE ---
-    with st.expander("How to Use", expanded=True):
+    # --- SETUP IN COLUMNS ---
+    col_left, col_right = st.columns([1.4, 1])
+
+    with col_left:
+        with st.expander("How to Use", expanded=True):
+            st.markdown("""
+**Welcome to the SEO Market Sizing Tool!**
+
+1. **Prepare your data:** Export keyword data from Ahrefs as a CSV.
+2. **Upload:** Use the form on the right.
+3. **Adjust filters:** Refine your market size analysis.
+4. **Explore:** Check the other tabs for insights.
+            """)
+
+    with col_right:
         st.markdown("""
-        **Welcome to the SEO Market Sizing Tool!**
-
-        1. **Prepare your data:**  
-           Export your keyword data from Ahrefs as a CSV file. At minimum, columns should include:  
-           `Keyword`, `Volume`, `Difficulty`, `SERP Features`, `CPC`.  
-           *(Optional but recommended: `Intents`, `Growth (3mo)`, `Growth (6mo)`, `Growth (12mo)`)*
-
-        2. **Upload your file:**  
-           Use the uploader below to import your data.
-
-        3. **Adjust filters:**  
-           Use the controls to refine your market size analysis.
-
-        4. **Explore results:**  
-           Navigate the tabs to analyze your keywords, search intent, trends, and more.
-        """)
-
-    # --- UPLOAD SECTION ---
-    st.markdown("""
-        <div style="background: #fff; border-radius: 14px; box-shadow: 0 2px 12px #dbe2ea55; padding: 2.2em 2em 1.2em 2em; max-width: 440px; margin: 24px auto 32px auto;">
-            <h3 style="margin-top:0; color:#3b5f8f;">1. Upload Ahrefs Keyword Data</h3>
-            <p style="color:#536074; font-size:1.1em;">Upload your CSV from Ahrefs. <br>(Columns required: <code>Keyword</code>, <code>Volume</code>, <code>Difficulty</code>, <code>SERP Features</code>, <code>CPC</code>)</p>
-        </div>
+<div style="background: #fff; border-radius: 12px; box-shadow: 0 2px 10px #dbe2ea33; padding: 1.2em 1em 1.1em 1em; margin-bottom: 16px;">
+    <h4 style="margin:0; color:#3b5f8f; font-weight:600;">1. Upload Ahrefs Keyword Data</h4>
+    <div style="color:#232b32; font-size:1em; margin: 0.7em 0 0.8em 0;">
+        <b>Required columns:</b>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Keyword</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Volume</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Difficulty</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">SERP Features</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px;">CPC</span>
+    </div>
+</div>
         """, unsafe_allow_html=True)
-    st.markdown('<div style="display:flex; justify-content:center;">', unsafe_allow_html=True)
-    uploaded_file = st.file_uploader(
-        "Choose an Ahrefs CSV file",
-        type="csv",
-        label_visibility="collapsed",
-        key="ahrefs_upload"
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
+        uploaded_file = st.file_uploader(
+            "Choose an Ahrefs CSV file",
+            type="csv",
+            label_visibility="collapsed",
+            key="ahrefs_upload"
+        )
 
-    # --- FILE UPLOAD LOGIC (unchanged) ---
+    # --- FILE UPLOAD LOGIC ---
     df_keywords = None
     growth_col_map_internal = {'3mo': None, '6mo': None, '12mo': None}
     if uploaded_file:
@@ -543,7 +542,7 @@ with tabs[0]:
         )
     else:
         st.info("Upload your Ahrefs data to begin.")
-
+        
 # --- Only run further tabs if data and params are present ---
 df_keywords = st.session_state.get('df_keywords', None)
 params = st.session_state.get('sidebar_params', None)
