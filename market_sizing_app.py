@@ -291,8 +291,7 @@ hr, .stDivider {
 # --- Configuration ---
 st.set_page_config(layout="wide", page_title="SEO Market Sizing Tool")
 
-# --- Helper Functions (same as your original code) ---
-
+# --- Helper Functions ---
 def classify_search_intent_custom(keyword):
     keyword_lower = keyword.lower()
     transactional_keywords = [
@@ -480,7 +479,6 @@ with tabs[0]:
     if df_keywords is not None:
         st.markdown("### 2. Market Filtering & Monetization")
         col1, col2, col3 = st.columns([1.5, 1.2, 1.2])
-
         with col1:
             st.subheader("Market Filtering (SAM)")
             min_volume = st.slider(
@@ -545,37 +543,6 @@ with tabs[0]:
         )
     else:
         st.info("Upload your Ahrefs data to begin.")
-        
-    # --- Filters & Parameters ---
-    df_keywords = st.session_state['df_keywords']
-    if df_keywords is not None:
-        st.subheader("Market Filtering (SAM)")
-        min_volume = st.slider("Minimum Monthly Search Volume", min_value=0, max_value=int(df_keywords['volume'].max()), value=0, step=10)
-        fixed_max_kd_for_sam = 100
-        all_ahrefs_intents = sorted(df_keywords['search_intent'].unique().tolist())
-        selected_intents = st.multiselect(
-            "Include Search Intents",
-            options=all_ahrefs_intents,
-            default=[intent for intent in all_ahrefs_intents if 'Branded' not in intent]
-        )
-        selected_keyword_types = st.multiselect(
-            "Include Keyword Types",
-            options=df_keywords['keyword_type'].unique(),
-            default=df_keywords['keyword_type'].unique()
-        )
-        st.subheader("Monetization & Obtainable Market (SOM)")
-        average_rpm = st.number_input("Average RPM for 1000 Clicks ($)", min_value=0.0, value=20.0, step=1.0, format="%.2f")
-        average_ctr_percentage = st.slider("Average Organic CTR (%)", min_value=1.0, max_value=100.0, value=35.0, step=0.5, format="%.1f")
-        som_percentage = st.slider("Serviceable Obtainable Market (SOM) %", min_value=0, max_value=100, value=10, step=1)
-        st.session_state['sidebar_params'] = dict(
-            min_volume=min_volume,
-            fixed_max_kd_for_sam=fixed_max_kd_for_sam,
-            selected_intents=selected_intents,
-            selected_keyword_types=selected_keyword_types,
-            average_rpm=average_rpm,
-            average_ctr_percentage=average_ctr_percentage,
-            som_percentage=som_percentage
-        )
 
 # --- Only run further tabs if data and params are present ---
 df_keywords = st.session_state.get('df_keywords', None)
@@ -583,7 +550,6 @@ params = st.session_state.get('sidebar_params', None)
 growth_col_map_internal = st.session_state.get('growth_col_map_internal', {'3mo': None, '6mo': None, '12mo': None})
 
 if df_keywords is not None and params:
-
     min_volume = params['min_volume']
     fixed_max_kd_for_sam = params['fixed_max_kd_for_sam']
     selected_intents = params['selected_intents']
