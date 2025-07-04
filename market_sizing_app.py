@@ -384,7 +384,6 @@ with tabs[0]:
             <p style="color:#536074; font-size:1.1em;">Upload your CSV from Ahrefs. <br>(Columns required: <code>Keyword</code>, <code>Volume</code>, <code>Difficulty</code>, <code>SERP Features</code>, <code>CPC</code>)</p>
         </div>
         """, unsafe_allow_html=True)
-    # Center the file uploader (remove full width)
     st.markdown('<div style="display:flex; justify-content:center;">', unsafe_allow_html=True)
     uploaded_file = st.file_uploader(
         "Choose an Ahrefs CSV file",
@@ -394,10 +393,9 @@ with tabs[0]:
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- FILE UPLOAD LOGIC (unchanged from your code) ---
+    # --- FILE UPLOAD LOGIC (unchanged) ---
     df_keywords = None
     growth_col_map_internal = {'3mo': None, '6mo': None, '12mo': None}
-
     if uploaded_file:
         encodings_to_try = ['utf-8', 'latin1', 'cp1252', 'utf-16']
         for encoding in encodings_to_try:
@@ -474,6 +472,77 @@ with tabs[0]:
                 df_keywords.loc[df_keywords['growth_pct'] < -5, 'trend'] = 'Trending Down'
                 st.session_state['df_keywords'] = df_keywords
                 st.session_state['growth_col_map_internal'] = growth_col_map_internal
+    else:
+        st.info("Upload your Ahrefs data to begin.")
+
+    # --- FILTERS & PARAMETERS (modern, NO duplicates) ---
+    df_keywords = st.session_state.get('df_keywords')
+    if df_keywords is not None:
+        st.markdown("### 2. Market Filtering & Monetization")
+        col1, col2, col3 = st.columns([1.5, 1.2, 1.2])
+
+        with col1:
+            st.subheader("Market Filtering (SAM)")
+            min_volume = st.slider(
+                "Minimum Monthly Search Volume",
+                min_value=0,
+                max_value=int(df_keywords['volume'].max()),
+                value=0,
+                step=10
+            )
+            st.markdown("<div style='height:0.6em'></div>", unsafe_allow_html=True)
+
+            selected_intents = st.multiselect(
+                "Include Search Intents",
+                options=sorted(df_keywords['search_intent'].unique().tolist()),
+                default=[intent for intent in sorted(df_keywords['search_intent'].unique().tolist()) if 'Branded' not in intent]
+            )
+            st.markdown("<div style='height:0.6em'></div>", unsafe_allow_html=True)
+
+            selected_keyword_types = st.multiselect(
+                "Include Keyword Types",
+                options=df_keywords['keyword_type'].unique(),
+                default=df_keywords['keyword_type'].unique()
+            )
+
+        with col2:
+            st.subheader("Monetization")
+            average_rpm = st.number_input(
+                "Average RPM for 1000 Clicks ($)",
+                min_value=0.0,
+                value=20.0,
+                step=1.0,
+                format="%.2f"
+            )
+            st.markdown("<div style='height:1.5em'></div>", unsafe_allow_html=True)
+            average_ctr_percentage = st.slider(
+                "Average Organic CTR (%)",
+                min_value=1.0,
+                max_value=100.0,
+                value=35.0,
+                step=0.5,
+                format="%.1f"
+            )
+
+        with col3:
+            st.subheader("Obtainable Market")
+            som_percentage = st.slider(
+                "Serviceable Obtainable Market (SOM) %",
+                min_value=0,
+                max_value=100,
+                value=10,
+                step=1
+            )
+
+        st.session_state['sidebar_params'] = dict(
+            min_volume=min_volume,
+            fixed_max_kd_for_sam=100,
+            selected_intents=selected_intents,
+            selected_keyword_types=selected_keyword_types,
+            average_rpm=average_rpm,
+            average_ctr_percentage=average_ctr_percentage,
+            som_percentage=som_percentage
+        )
     else:
         st.info("Upload your Ahrefs data to begin.")
 
