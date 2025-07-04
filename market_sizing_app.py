@@ -13,12 +13,13 @@ html, body, [class*="stApp"] {
     font-family: 'Inter', 'Segoe UI', Arial, sans-serif!important;
     background-color: #f7f9fb;
 }
-h1, h2, h3, h4, h5, h6 {
-    color: #3b5f8f;
-    font-weight: 700;
-    letter-spacing: -0.015em;
-    margin-bottom: 0.5em;
-}
+h1 { font-weight: 700; color: #3b5f8f; letter-spacing: -0.015em; margin-bottom: 0.5em; }
+h2 { font-weight: 600; color: #3b5f8f; letter-spacing: -0.015em; margin-bottom: 0.5em; }
+h3 { font-weight: 500; color: #3b5f8f; letter-spacing: -0.015em; margin-bottom: 0.5em; }
+h4 { font-weight: 400; color: #3b5f8f; letter-spacing: -0.015em; margin-bottom: 0.5em; }
+h5 { font-weight: 300; color: #3b5f8f; letter-spacing: -0.015em; margin-bottom: 0.5em; }
+h6 { font-weight: 200; color: #3b5f8f; letter-spacing: -0.015em; margin-bottom: 0.5em; }
+
 .stTitle, .stHeader {
     margin-top: 0.5em;
     margin-bottom: 1em;
