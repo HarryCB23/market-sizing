@@ -357,23 +357,47 @@ tabs = st.tabs([
 
 # --- TAB 1: SETUP (Upload and Filters) ---
 with tabs[0]:
-    st.title("📊 SEO Market Sizing Tool")
-    st.markdown("""
-    Welcome to your SEO Market Sizing Tool! This app helps you analyze your Ahrefs keyword data to understand the Total Addressable Market (TAM), Serviceable Available Market (SAM), and Serviceable Obtainable Market (SOM) for your niche.
-    """)
-    st.header("1. Upload Ahrefs Keyword Data")
-    st.info("""
-        Please export your keyword data from Ahrefs as a CSV file. Ensure the export includes at least the following columns:
-        `Keyword`, `Volume`, `Difficulty`, `SERP Features`, `CPC`.
-        Highly recommended: Include the `Intents` column for more accurate search intent classification.
-        For trend analysis, ensure `Growth (3mo)`, `Growth (6mo)`, or `Growth (12mo)` columns are also included.
-    """)
+    # --- HOW TO USE ---
+    with st.expander("How to Use", expanded=True):
+        st.markdown("""
+        **Welcome to the SEO Market Sizing Tool!**
 
-    uploaded_file = st.file_uploader("Choose an Ahrefs CSV file", type="csv")
+        1. **Prepare your data:**  
+           Export your keyword data from Ahrefs as a CSV file. At minimum, columns should include:  
+           `Keyword`, `Volume`, `Difficulty`, `SERP Features`, `CPC`.  
+           *(Optional but recommended: `Intents`, `Growth (3mo)`, `Growth (6mo)`, `Growth (12mo)`)*
+
+        2. **Upload your file:**  
+           Use the uploader below to import your data.
+
+        3. **Adjust filters:**  
+           Use the controls to refine your market size analysis.
+
+        4. **Explore results:**  
+           Navigate the tabs to analyze your keywords, search intent, trends, and more.
+        """)
+
+    # --- UPLOAD SECTION ---
+    st.markdown("""
+        <div style="background: #fff; border-radius: 14px; box-shadow: 0 2px 12px #dbe2ea55; padding: 2.2em 2em 1.2em 2em; max-width: 440px; margin: 24px auto 32px auto;">
+            <h3 style="margin-top:0; color:#3b5f8f;">1. Upload Ahrefs Keyword Data</h3>
+            <p style="color:#536074; font-size:1.1em;">Upload your CSV from Ahrefs. <br>(Columns required: <code>Keyword</code>, <code>Volume</code>, <code>Difficulty</code>, <code>SERP Features</code>, <code>CPC</code>)</p>
+        </div>
+        """, unsafe_allow_html=True)
+    # Center the file uploader (remove full width)
+    st.markdown('<div style="display:flex; justify-content:center;">', unsafe_allow_html=True)
+    uploaded_file = st.file_uploader(
+        "Choose an Ahrefs CSV file",
+        type="csv",
+        label_visibility="collapsed",
+        key="ahrefs_upload"
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- FILE UPLOAD LOGIC (unchanged from your code) ---
     df_keywords = None
     growth_col_map_internal = {'3mo': None, '6mo': None, '12mo': None}
 
-    # --- File Upload & Processing ---
     if uploaded_file:
         encodings_to_try = ['utf-8', 'latin1', 'cp1252', 'utf-16']
         for encoding in encodings_to_try:
@@ -453,6 +477,77 @@ with tabs[0]:
     else:
         st.info("Upload your Ahrefs data to begin.")
 
+    # --- FILTERS & PARAMETERS ---
+    df_keywords = st.session_state.get('df_keywords')
+    if df_keywords is not None:
+        st.markdown("### 2. Market Filtering & Monetization")
+        col1, col2, col3 = st.columns([1.5, 1.2, 1.2])
+
+        with col1:
+            st.subheader("Market Filtering (SAM)")
+            min_volume = st.slider(
+                "Minimum Monthly Search Volume",
+                min_value=0,
+                max_value=int(df_keywords['volume'].max()),
+                value=0,
+                step=10
+            )
+            st.markdown("<div style='height:0.6em'></div>", unsafe_allow_html=True)  # Spacer
+
+            selected_intents = st.multiselect(
+                "Include Search Intents",
+                options=sorted(df_keywords['search_intent'].unique().tolist()),
+                default=[intent for intent in sorted(df_keywords['search_intent'].unique().tolist()) if 'Branded' not in intent]
+            )
+            st.markdown("<div style='height:0.6em'></div>", unsafe_allow_html=True)  # Spacer
+
+            selected_keyword_types = st.multiselect(
+                "Include Keyword Types",
+                options=df_keywords['keyword_type'].unique(),
+                default=df_keywords['keyword_type'].unique()
+            )
+
+        with col2:
+            st.subheader("Monetization")
+            average_rpm = st.number_input(
+                "Average RPM for 1000 Clicks ($)",
+                min_value=0.0,
+                value=20.0,
+                step=1.0,
+                format="%.2f"
+            )
+            st.markdown("<div style='height:1.5em'></div>", unsafe_allow_html=True)
+            average_ctr_percentage = st.slider(
+                "Average Organic CTR (%)",
+                min_value=1.0,
+                max_value=100.0,
+                value=35.0,
+                step=0.5,
+                format="%.1f"
+            )
+
+        with col3:
+            st.subheader("Obtainable Market")
+            som_percentage = st.slider(
+                "Serviceable Obtainable Market (SOM) %",
+                min_value=0,
+                max_value=100,
+                value=10,
+                step=1
+            )
+
+        st.session_state['sidebar_params'] = dict(
+            min_volume=min_volume,
+            fixed_max_kd_for_sam=100,  # (unchanged)
+            selected_intents=selected_intents,
+            selected_keyword_types=selected_keyword_types,
+            average_rpm=average_rpm,
+            average_ctr_percentage=average_ctr_percentage,
+            som_percentage=som_percentage
+        )
+    else:
+        st.info("Upload your Ahrefs data to begin.")
+        
     # --- Filters & Parameters ---
     df_keywords = st.session_state['df_keywords']
     if df_keywords is not None:
