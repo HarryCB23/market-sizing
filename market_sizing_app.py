@@ -19,7 +19,6 @@ h3 { font-weight: 500; color: #3b5f8f; letter-spacing: -0.015em; margin-bottom: 
 h4 { font-weight: 400; color: #3b5f8f; letter-spacing: -0.015em; margin-bottom: 0.5em; }
 h5 { font-weight: 300; color: #3b5f8f; letter-spacing: -0.015em; margin-bottom: 0.5em; }
 h6 { font-weight: 200; color: #3b5f8f; letter-spacing: -0.015em; margin-bottom: 0.5em; }
-
 .stTitle, .stHeader {
     margin-top: 0.5em;
     margin-bottom: 1em;
@@ -360,7 +359,7 @@ tabs = st.tabs([
 with tabs[0]:
     st.title("📊 SEO Market Sizing Tool")
     st.markdown("""
-    Welcome to your SEO Market Sizing Tool! This app helps you analyze your Ahrefs keyword data to understand the Total Addressable Market (TAM), Serviceable Available Market (SAM), and Serviceable Obtainable Market (SOM).
+    Welcome to your SEO Market Sizing Tool! This app helps you analyze your Ahrefs keyword data to understand the Total Addressable Market (TAM), Serviceable Available Market (SAM), and Serviceable Obtainable Market (SOM) for your niche.
     """)
     st.header("1. Upload Ahrefs Keyword Data")
     st.info("""
@@ -569,7 +568,7 @@ if df_keywords is not None and params:
             features_df = pd.DataFrame(all_features.items(), columns=['SERP Feature', 'Count'])
             fig_features = px.bar(features_df, x='SERP Feature', y='Count', title='Count of SERP Features in SAM Keywords')
             st.plotly_chart(fig_features, use_container_width=True)
-            with st.expander("SERP Features Table (Dropdown)"):
+            with st.expander("SERP Features Table (Dropdown)", expanded=True):
                 st.dataframe(features_df, hide_index=True, use_container_width=True)
         else:
             st.info("No specific SERP features detected in the selected keywords.")
@@ -609,7 +608,7 @@ if df_keywords is not None and params:
             )
             st.plotly_chart(fig_word_count, use_container_width=True)
             st.info("This chart shows the distribution of keywords by their word count and the corresponding total search volume for each.")
-            with st.expander("Word Count Table (Dropdown)"):
+            with st.expander("Word Count Table (Dropdown)", expanded=True):
                 st.dataframe(word_count_data, hide_index=True, use_container_width=True)
         else:
             st.warning("No keywords in SAM for word count breakdown. Adjust your filters in Setup.")
@@ -653,7 +652,7 @@ if df_keywords is not None and params:
                 )
                 st.plotly_chart(fig_intent_combo, use_container_width=True)
                 st.info("This chart breaks down keywords by their primary search intent, showing both the count of keywords and their aggregated search volume.")
-                with st.expander("Intent Breakdown Table (Dropdown)"):
+                with st.expander("Intent Breakdown Table (Dropdown)", expanded=True):
                     table_data = intent_data.copy()
                     table_data['Example Keyword'] = table_data['search_intent'].apply(
                         lambda x: df_sam[df_sam['search_intent'] == x]['keyword'].iloc[0] if not df_sam[df_sam['search_intent'] == x].empty else "N/A"
@@ -717,7 +716,7 @@ if df_keywords is not None and params:
                 )
                 st.plotly_chart(fig_combo, use_container_width=True)
                 st.info("This chart displays the top 10 parent topics by total search volume, with their average Keyword Difficulty (KD) overlaid.")
-                with st.expander("Top Parent Categories Table (Dropdown)"):
+                with st.expander("Top Parent Categories Table (Dropdown)", expanded=True):
                     df_display = top_10_parent_topics[['parent_topic', 'total_volume', 'average_kd', 'average_cpc', 'weighted_growth_pct']].copy()
                     df_display.rename(columns={
                         'parent_topic': 'Parent Topic',
@@ -772,14 +771,14 @@ if df_keywords is not None and params:
             with col_up:
                 trending_up_keywords = df_keywords[df_keywords['trend'] == 'Trending Up'].sort_values(by=['growth_pct', 'volume'], ascending=[False, False])
                 if not trending_up_keywords.empty:
-                    with st.expander("📈 Top Trending Up Keywords"):
+                    with st.expander("📈 Top Trending Up Keywords", expanded=True):
                         st.dataframe(trending_up_keywords[['keyword', 'volume', 'kd', 'growth_pct']].head(10).rename(columns={'growth_pct': 'Growth (%)'}), use_container_width=True)
                 else:
                     st.info("No keywords identified as 'Trending Up'.")
             with col_down:
                 trending_down_keywords = df_keywords[df_keywords['trend'] == 'Trending Down'].sort_values(by=['growth_pct', 'volume'], ascending=[True, False])
                 if not trending_down_keywords.empty:
-                    with st.expander("📉 Top Trending Down Keywords"):
+                    with st.expander("📉 Top Trending Down Keywords", expanded=True):
                         st.dataframe(trending_down_keywords[['keyword', 'volume', 'kd', 'growth_pct']].head(10).rename(columns={'growth_pct': 'Growth (%)'}), use_container_width=True)
                 else:
                     st.info("No keywords identified as 'Trending Down'.")
