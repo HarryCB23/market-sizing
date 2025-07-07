@@ -364,10 +364,10 @@ with tabs[0]:
             st.markdown("""
 **Welcome to the SEO Market Sizing Tool!**
 
-1. **Prepare your data:** Export keyword data from Ahrefs as a CSV.
-2. **Upload:** Use the form on the right.
-3. **Adjust filters:** Refine your market size analysis.
-4. **Explore:** Check the other tabs for insights.
+1. **Prepare your data:** Export keyword data from Ahrefs as a CSV. Ahrefs > Keywords Explorer > Enter Keyword > Download Keyword Ideas (CSV)
+2. **Upload:** Use the form on the right to upload the file. I recommend having all columns from the Keywords Explorer download included.
+3. **Adjust filters:** Refine your market size analysis by refining the keyword intent, CTR, revenue and addressable market size below.
+4. **Explore:** Check the other tabs for insights - from AI Overview presence and search volume by keyword intent to market trends.
             """)
 
     with col_right:
