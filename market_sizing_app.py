@@ -476,7 +476,7 @@ with tabs[0]:
     # --- FILTERS & PARAMETERS (modern, NO duplicates) ---
     df_keywords = st.session_state.get('df_keywords')
     if df_keywords is not None:
-        st.markdown("### 2. Market Filtering & Monetization")
+        st.markdown("### 2. Market Filtering & Monetisation")
         col1, col2, col3 = st.columns([1.5, 1.2, 1.2])
         with col1:
             st.subheader("Market Filtering (SAM)")
@@ -503,9 +503,9 @@ with tabs[0]:
             )
 
         with col2:
-            st.subheader("Monetization")
+            st.subheader("Monetisation")
             average_rpm = st.number_input(
-                "Average RPM for 1000 Clicks ($)",
+                "Average RPM for 1000 Clicks (£)",
                 min_value=0.0,
                 value=20.0,
                 step=1.0,
