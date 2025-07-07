@@ -364,7 +364,7 @@ with tabs[0]:
             st.markdown("""
 **Welcome to the SEO Market Sizing Tool!**
 
-1. **Prepare your data:** Export keyword data from Ahrefs as a CSV. Ahrefs > Keywords Explorer > Enter Keyword > Download Keyword Ideas (CSV)
+1. **Prepare your data:** Export keyword data from Ahrefs as a CSV. Ahrefs > Keywords Explorer > Enter Keyword > Download Keyword Ideas (CSV). You don't need to change anything from this CSV file. Upload as is.
 2. **Upload:** Use the form on the right to upload the file. I recommend having all columns from the Keywords Explorer download included.
 3. **Adjust filters:** Refine your market size analysis by refining the keyword intent, CTR, revenue and addressable market size below.
 4. **Explore:** Check the other tabs for insights - from AI Overview presence and search volume by keyword intent to market trends.
@@ -382,8 +382,29 @@ with tabs[0]:
         <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">SERP Features</span>
         <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px;">CPC</span>
     </div>
+    <div style="color:#232b32; font-size:1em; margin: 0.8em 0 0.2em 0;">
+        <b>Recommended columns:</b>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Country</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">CPS</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Parent Keyword</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Last Update</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Global volume</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Traffic potential</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Global traffic potential</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">First seen</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Mobile</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Desktop</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Growth (3mo)</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Growth (6mo)</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Growth (12mo)</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Global Growth (3mo)</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Global Growth (6mo)</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Global Growth (12mo)</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px; margin-right:3px;">Growth forecast (12mo)</span>
+        <span style="background:#e7ecf3; border-radius:5px; padding:2px 7px;">Intents</span>
+    </div>
 </div>
-        """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
         uploaded_file = st.file_uploader(
             "Choose an Ahrefs CSV file",
             type="csv",
